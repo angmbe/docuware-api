@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -98,17 +100,22 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'mssql',
-        'NAME': 'db_ab1c1a_docuware',
-        'USER': 'db_ab1c1a_docuware_admin',
-        'PASSWORD': '53Lw89a)',
-        'HOST': 'sql1001.site4now.net',  # 'localhost' o IP
-        'PORT': '1433',
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-        },
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
+    # 'default': {
+    #     'ENGINE': 'mssql',
+    #     'NAME': 'db_ab1c1a_docuware',
+    #     'USER': 'db_ab1c1a_docuware_admin',
+    #     'PASSWORD': '53Lw89a)',
+    #     'HOST': 'sql1001.site4now.net',  # 'localhost' o IP
+    #     'PORT': '1433',
+    #     'OPTIONS': {
+    #         'driver': 'ODBC Driver 17 for SQL Server',
+    #     },
+    # }
 }
 
 
