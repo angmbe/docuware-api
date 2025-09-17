@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-e899gw&a@qtjthg6_yr)607^pv&p0n)mss%*=fmfp#ih0wf#o4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "docuware-api-a09ab977636d.herokuapp.com",
+    "localhost",
+    "127.0.0.1"
+]
 
 
 # Application definition
