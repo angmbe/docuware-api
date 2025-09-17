@@ -19,10 +19,10 @@ class User(models.Model):
     username = models.CharField(max_length=100, unique=True)
     password_hash = models.CharField(max_length=255)  # ← NO plaintext
     fullname = models.CharField(max_length=255)
-    profile = models.ForeignKey(Profile, on_delete=models.DO_NOTHING, db_column='profileID')
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
     #customer_id = models.CharField(max_length=50, null=True)
     #customer = models.ForeignKey(Customer,on_delete=models.DO_NOTHING, db_column='customer_id')
-    status = models.BooleanField()
+    status = models.BooleanField(default=True)
     created_by = models.IntegerField(null=True)
     created_at = models.DateTimeField(null=True)
     updated_by = models.IntegerField(null=True)
