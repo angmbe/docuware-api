@@ -29,7 +29,13 @@ class DocumentListCreateView(APIView):
         serializer = DocumentSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            #return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return standard_response(
+            success=True,
+            message="Document created successfully",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -45,7 +51,7 @@ class DocumentDetailView(APIView):
         #return Response(serializer.data, status=status.HTTP_200_OK)
         return standard_response(
             success=True,
-            message="Documentos obtenidos correctamente",
+            message="List documents successfully",
             data=serializer.data,
             status_code=status.HTTP_200_OK
         )
@@ -73,12 +79,12 @@ class DocumentDetailView(APIView):
         #return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             return standard_response(
             success=True,
-            message="Documento actualizado correctamente",
+            message="Document updated correctly",
             data=serializer.data
             )
         return standard_response(
         success=False,
-        message="Error al actualizar documento",
+        message="Error while updating document",
         data=serializer.errors,
         status_code=status.HTTP_400_BAD_REQUEST
     )
