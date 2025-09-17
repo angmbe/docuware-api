@@ -11,7 +11,7 @@ class Profile(models.Model):
     updated_at = models.DateTimeField(null=True)
 
     class Meta:
-        db_table = 'Profile'
+        db_table = 'profile'
         managed = False
 
 class User(models.Model):
@@ -29,5 +29,5 @@ class User(models.Model):
     updated_at = models.DateTimeField(null=True)
 
     class Meta:
-        db_table = 'Users'
+        db_table = 'users'
         managed = False
