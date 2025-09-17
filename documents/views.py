@@ -36,7 +36,7 @@ class DocumentDetailView(APIView):
         serializer = DocumentSerializer(document)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request, pk):
+    def patch(self, request, pk):
         """Actualizar un documento"""
         try:
             document = Document.objects.get(pk=pk)
