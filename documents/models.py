@@ -5,6 +5,7 @@ class Document(models.Model):
     documentserial = models.CharField(max_length=50, null=True, blank=True)
     documentnumber = models.CharField(max_length=50, null=True, blank=True)
     suppliernumber = models.CharField(max_length=50, null=True, blank=True)
+    suppliername = models.CharField(max_length=100, null=True, blank=True)
     documenttype = models.IntegerField()
     documentdate = models.DateField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
