@@ -17,8 +17,8 @@ class TipoDocumento(models.Model):
     
 class Document(models.Model):
     documentid = models.AutoField(primary_key=True)
-    documentserial = models.CharField(max_length=50, null=True, blank=True)
-    documentnumber = models.CharField(max_length=50, null=True, blank=True)
+    documentserial = models.CharField(max_length=50, null=True, blank=True, default = "")
+    documentnumber = models.CharField(max_length=50, null=True, blank=True, default = "")
     suppliernumber = models.CharField(max_length=50, null=True, blank=True)
     suppliername = models.CharField(max_length=100, null=True, blank=True)
     #documenttype = models.IntegerField()
