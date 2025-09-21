@@ -21,8 +21,4 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = "__all__"
-    def get_documentserial(self, obj):
-        return obj.documentserial or ""
 
-    def get_documentnumber(self, obj):
-        return obj.documentnumber or ""
