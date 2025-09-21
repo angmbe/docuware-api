@@ -14,8 +14,9 @@ class DocumentSerializer(serializers.ModelSerializer):
         source="documenttype",
         write_only=True
     )
-    documentserial = serializers.SerializerMethodField()
-    documentnumber = serializers.SerializerMethodField()
+    # Evita null y permite postear valores
+    documentserial = serializers.CharField(allow_blank=True, required=False)
+    documentnumber = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = Document
