@@ -22,3 +22,12 @@ class DocumentSerializer(serializers.ModelSerializer):
         model = Document
         fields = "__all__"
 
+    def to_representation(self, instance):
+        """Evita que se muestre null y en su lugar vacío"""
+        data = super().to_representation(instance)
+        if data.get("documentserial") is None:
+            data["documentserial"] = ""
+        if data.get("documentnumber") is None:
+            data["documentnumber"] = ""
+        return data
+
