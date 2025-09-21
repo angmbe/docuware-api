@@ -4,8 +4,19 @@ from rest_framework import status
 from django.utils import timezone
 
 from utils.responses import standard_response
-from .models import Document
-from .serializers import DocumentSerializer
+from .models import Document, TipoDocumento
+from .serializers import DocumentSerializer, TipoDocumentoSerializer
+
+class TipoDocumentoView(APIView):
+    def get(self, request):
+        tipos = TipoDocumento.objects.all()
+        serializer = TipoDocumentoSerializer(tipos, many=True)
+        return standard_response(
+            success=True,
+            message="Tipos de documento obtenidos correctamente",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK
+        )
 
 
 class DocumentListCreateView(APIView):
