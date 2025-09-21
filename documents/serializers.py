@@ -9,6 +9,11 @@ class TipoDocumentoSerializer(serializers.ModelSerializer):
         
 class DocumentSerializer(serializers.ModelSerializer):
     documenttype = TipoDocumentoSerializer(read_only=True)
+    documenttype_id = serializers.PrimaryKeyRelatedField(
+        queryset=TipoDocumento.objects.all(),
+        source="documenttype",
+        write_only=True
+    )
     class Meta:
         model = Document
         fields = "__all__"
