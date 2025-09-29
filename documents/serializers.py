@@ -29,5 +29,5 @@ class DocumentSerializer(serializers.ModelSerializer):
             data["documentserial"] = ""
         if data.get("documentnumber") is None:
             data["documentnumber"] = ""
-        return data.sorted()
+        return data
 
