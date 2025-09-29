@@ -22,7 +22,7 @@ class TipoDocumentoView(APIView):
 class DocumentListCreateView(APIView):
     def get(self, request):
         """Obtener todos los documentos"""
-        documents = Document.objects.all()
+        documents = Document.objects.all().order_by('-documentid')
         serializer = DocumentSerializer(documents, many=True)
         #return Response(serializer.data, status=status.HTTP_200_OK)
         return standard_response(
