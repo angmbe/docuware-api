@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'documents',
+    'documents_items',
     # 'listitems',
     # 'company',
     # 'customer',
