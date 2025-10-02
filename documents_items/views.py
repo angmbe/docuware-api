@@ -7,9 +7,9 @@ from .serializers import DocumentDetailSerializer
 class DocumentDetailView(APIView):
     # GET con supplierNumber, documentSerial, documentNumber
     def get(self, request):
-        supplier_number = request.data.get("suppliernumber")
-        document_serial = request.data.get("documentserial")
-        document_number = request.data.get("documentnumber")
+        supplier_number = request.query_params.get("suppliernumber")
+        document_serial = request.query_params.get("documentserial")
+        document_number = request.query_params.get("documentnumber")
 
         # Validación: todos son obligatorios
         if not (supplier_number and document_serial and document_number):
