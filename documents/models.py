@@ -36,6 +36,7 @@ class Document(models.Model):
     totalamount = models.DecimalField(max_digits=12, decimal_places=2)
     documenturl = models.CharField(max_length=1000, null=True, blank=True)
     notes = models.CharField(max_length=100, null=True, blank=True)
+    currency = models.CharField(max_length=3, null=True, blank=True)
     status = models.BooleanField(default=True)
     created_by = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
