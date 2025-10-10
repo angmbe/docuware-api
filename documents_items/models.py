@@ -16,6 +16,7 @@ class DocumentDetail(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.IntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    vehicle_no = models.CharField(max_length=10, null=True, blank=True) 
 
     class Meta:
         db_table = "documents_detail"
