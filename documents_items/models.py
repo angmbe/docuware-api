@@ -6,7 +6,7 @@ class DocumentDetail(models.Model):
     documentnumber = models.CharField(max_length=50)
     suppliernumber = models.CharField(max_length=50)
     unit_measure_description = models.CharField(max_length=100, null=True, blank=True)
-    description = models.CharField(max_length=100, null=True, blank=True)
+    description = models.CharField(max_length=255, null=True, blank=True)
     quantity = models.IntegerField()
     unit_value = models.DecimalField(max_digits=12, decimal_places=2)
     tax_value = models.DecimalField(max_digits=12, decimal_places=2)
