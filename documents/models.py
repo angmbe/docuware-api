@@ -38,12 +38,22 @@ class Document(models.Model):
     notes = models.CharField(max_length=100, null=True, blank=True)
     currency = models.CharField(max_length=3, null=True, blank=True)
     driver = models.CharField(max_length=100, null=True, blank=True)
-    centercost = models.CharField(max_length=100, null=True, blank=True)
+    #centercost = models.CharField(max_length=100, null=True, blank=True)
+    centercost = models.ForeignKey(
+    'centro_costo.CentroCosto',
+    on_delete=models.DO_NOTHING,
+    db_constraint=False,
+    db_column="centercost",
+    related_name="documents",
+    null=True,
+    blank=True
+    )
     status = models.BooleanField(default=True)
     created_by = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.IntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+
 
     class Meta:
         db_table = "documents"

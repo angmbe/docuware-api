@@ -1,4 +1,7 @@
 from rest_framework import serializers
+
+from centro_costo.models import CentroCosto
+from centro_costo.serializers import CentroCostoSerializer
 from .models import Document, TipoDocumento
 
 class TipoDocumentoSerializer(serializers.ModelSerializer):
@@ -13,6 +16,13 @@ class DocumentSerializer(serializers.ModelSerializer):
         queryset=TipoDocumento.objects.all(),
         source="documenttype",
         write_only=True
+    )
+    centercost = CentroCostoSerializer(read_only=True)  # 👈 Aquí el cambio importante
+    centercost_id = serializers.PrimaryKeyRelatedField(
+        queryset=CentroCosto.objects.all(),
+        source="centercost",
+        write_only=True,
+        required=False
     )
     # Evita null y permite postear valores
     documentserial = serializers.CharField(allow_blank=True, required=False)
