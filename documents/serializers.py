@@ -39,7 +39,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             data["documentserial"] = ""
         if data.get("documentnumber") is None:
             data["documentnumber"] = ""
-        if data.get("centercost") is None:
-            data["centercost"] = ""
+        if data.get("centrocodigo") is None:
+            data["centrocodigo"] = ""
         return data
 
