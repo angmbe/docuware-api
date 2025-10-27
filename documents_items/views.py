@@ -65,6 +65,12 @@ class DocumentFullView(APIView):
                     documentnumber=doc.documentnumber
                 )
 
+                # Manejo seguro del centro de costo
+                centercost_desc = ""
+                if doc.centercost:
+                    centercost_desc = f"{doc.centercost.centrocodigo} - {doc.centercost.descripcion}"
+
+
                 if matched_details.exists():
                     for det in matched_details:
                         merged_data.append({
@@ -77,7 +83,7 @@ class DocumentFullView(APIView):
                             "description": det.description or "",
                             "vehicle_nro": det.vehicle_no or "",
                             "driver" : doc.driver or "",
-                            "centercost" : doc.centercost.centrocodigo + " - " + doc.centercost.descripcion or "",
+                            "centercost" : centercost_desc,
                             "unit_measure_description": det.unit_measure_description or "",
                             "quantity": det.quantity,
                             "currency": doc.currency,
@@ -100,7 +106,7 @@ class DocumentFullView(APIView):
                         "description": "",
                         "vehicle_nro": "",
                         "driver" : doc.driver or "",
-                        "centercost" : doc.centercost.centrocodigo + " - " + doc.centercost.descripcion or "",
+                        "centercost" : centercost_desc,
                         "unit_measure_description": "",
                         "quantity": None,
                         "currency": doc.currency,
