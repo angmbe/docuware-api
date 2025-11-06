@@ -48,7 +48,38 @@ class DocumentListCreateView(APIView):
             status_code=status.HTTP_200_OK
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class DocumentDeleteView(APIView):
+    def post(self, request):
+        document_id = request.data.get("documentid")
 
+        # Validar que se haya enviado el ID
+        if not document_id:
+            return Response(
+                {"error": "El campo 'documentid' es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            document = Document.objects.get(documentid=document_id)
+            document.delete()
+
+            return Response(
+                {"message": f"Documento con ID {document_id} eliminado correctamente."},
+                status=status.HTTP_200_OK
+            )
+
+        except Document.DoesNotExist:
+            return Response(
+                {"error": f"No se encontró ningún documento con documentid={document_id}."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class DocumentDetailView(APIView):
     def get(self, request, pk):
