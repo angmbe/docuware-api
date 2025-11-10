@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     # 'customerpayment',
     'users',
     'centro_costo',
+    'programacion',
     # 'customerlegal',
     # 'customerauthorization'
 ]

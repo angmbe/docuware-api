@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/', include('documents.urls')),
     path('api/', include('documents_items.urls')),
     path('api/', include('centro_costo.urls')),
+    path('api/', include('programacion.urls')),
     # path('api/', include('customerpayment.urls')),
     # path('api/', include('customerlegal.urls')),
     # path('api/', include('customerauthorization.urls')),
