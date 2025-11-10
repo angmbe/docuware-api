@@ -1,3 +1,4 @@
+from django.db.models import Count
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -23,14 +24,37 @@ class DocumentListCreateView(APIView):
     def get(self, request):
         """Obtener todos los documentos"""
         documents = Document.objects.all().order_by('-documentid')
+        # 2️⃣ Agrupar por las columnas clave y contar
+        duplicates = (
+            Document.objects
+            .values('documentserial', 'documentnumber', 'suppliernumber')
+            .annotate(count=Count('documentid'))
+            .filter(count__gt=1)
+        )
+
+        # 3️⃣ Crear un conjunto para rápida búsqueda
+        duplicate_keys = {
+            (item['documentserial'], item['documentnumber'], item['suppliernumber'])
+            for item in duplicates
+        }
+
+        # 4️⃣ Serializar los datos
         serializer = DocumentSerializer(documents, many=True)
-        #return Response(serializer.data, status=status.HTTP_200_OK)
+        serialized_data = serializer.data
+
+        # 5️⃣ Agregar campo "isDuplicated"
+        for doc in serialized_data:
+            key = (doc.get('documentserial'), doc.get('documentnumber'), doc.get('suppliernumber'))
+            doc["isDuplicated"] = "X" if key in duplicate_keys else ""
+
+        # 6️⃣ Retornar respuesta estándar
         return standard_response(
             success=True,
             message="Documentos obtenidos correctamente",
-            data=serializer.data,
+            data=serialized_data,
             status_code=status.HTTP_200_OK
         )
+
 
     def post(self, request):
         """Crear un nuevo documento"""
