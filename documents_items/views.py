@@ -74,6 +74,7 @@ class DocumentFullView(APIView):
                 if matched_details.exists():
                     for det in matched_details:
                         merged_data.append({
+                            "documentid": doc.documenttype.tipoid or "",
                             "documenttype": doc.documenttype.tipo or "",
                             "suppliernumber": doc.suppliernumber or "",
                             "documentserial": doc.documentserial or "",
@@ -97,6 +98,7 @@ class DocumentFullView(APIView):
                 else:
                     # Si no tiene detalles, igual devolvemos la cabecera
                     merged_data.append({
+                        "documentid": doc.documenttype.tipoid or "",
                         "documenttype": doc.documenttype.tipo or "",
                         "suppliernumber": doc.suppliernumber or "",
                         "documentserial": doc.documentserial or "",
