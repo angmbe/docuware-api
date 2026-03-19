@@ -59,3 +59,74 @@ class Document(models.Model):
     class Meta:
         db_table = "documents"
 
+
+class PurchaseOrder(models.Model):
+    purchaseOrderID = models.AutoField(primary_key=True, db_column="purchaseorderid")
+    orderNo = models.CharField(max_length=20, null=True, blank=True, db_column="orderno")
+    supplierID = models.IntegerField(null=True, blank=True, db_column="supplierid")
+    documentAssociatedType = models.IntegerField(
+        null=True,
+        blank=True,
+        db_column="documentassociatedtype",
+    )
+    documentAssociatedNo = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        db_column="documentassociatedno",
+    )
+    paymentCondition = models.IntegerField(
+        null=True,
+        blank=True,
+        db_column="paymentcondition",
+    )
+    currency = models.IntegerField(null=True, blank=True, db_column="currency")
+    guideNo = models.CharField(max_length=20, null=True, blank=True, db_column="guideno")
+    store = models.IntegerField(null=True, blank=True, db_column="store")
+    purchaseState = models.IntegerField(null=True, blank=True, db_column="purchasestate")
+    createdBy = models.IntegerField(null=True, blank=True, db_column="createdby")
+    createAt = models.DateField(null=True, blank=True, db_column="createat")
+    updatedBy = models.IntegerField(null=True, blank=True, db_column="updatedby")
+    updatedAt = models.DateField(null=True, blank=True, db_column="updatedat")
+
+    class Meta:
+        db_table = "purchaseorder"
+
+    def __str__(self):
+        return self.orderNo or f"PO-{self.purchaseOrderID}"
+
+
+class PurchaseOrderDetail(models.Model):
+    purchaseDetailID = models.AutoField(primary_key=True, db_column="purchasedetailid")
+    purchaseOrderID = models.ForeignKey(
+        PurchaseOrder,
+        on_delete=models.CASCADE,
+        db_column="purchaseorderid",
+        related_name="details",
+    )
+    descriptionItem = models.TextField(null=True, blank=True, db_column="descriptionitem")
+    quantity = models.IntegerField(null=True, blank=True, db_column="quantity")
+    unitPrice = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        db_column="unitprice",
+    )
+    total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        db_column="total",
+    )
+    createdBy = models.IntegerField(null=True, blank=True, db_column="createdby")
+    createAt = models.DateField(null=True, blank=True, db_column="createat")
+    updatedBy = models.IntegerField(null=True, blank=True, db_column="updatedby")
+    updatedAt = models.DateField(null=True, blank=True, db_column="updatedat")
+
+    class Meta:
+        db_table = "purchaseorderdetail"
+
+    def __str__(self):
+        return f"{self.purchaseDetailID} - {self.descriptionItem or 'Sin descripcion'}"

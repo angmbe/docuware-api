@@ -1,8 +1,10 @@
+from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from centro_costo.models import CentroCosto
 from centro_costo.serializers import CentroCostoSerializer
-from .models import Document, TipoDocumento
+from .models import Document, PurchaseOrder, PurchaseOrderDetail, TipoDocumento
 
 class TipoDocumentoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -43,3 +45,72 @@ class DocumentSerializer(serializers.ModelSerializer):
             data["centrocodigo"] = ""
         return data
 
+
+class PurchaseOrderDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchaseOrderDetail
+        fields = "__all__"
+        extra_kwargs = {
+            "purchaseDetailID": {"read_only": True},
+            "purchaseOrderID": {"read_only": True},
+        }
+
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    details = PurchaseOrderDetailSerializer(many=True)
+
+    class Meta:
+        model = PurchaseOrder
+        fields = [
+            "purchaseOrderID",
+            "orderNo",
+            "supplierID",
+            "documentAssociatedType",
+            "documentAssociatedNo",
+            "paymentCondition",
+            "currency",
+            "guideNo",
+            "store",
+            "purchaseState",
+            "createdBy",
+            "createAt",
+            "updatedBy",
+            "updatedAt",
+            "details",
+        ]
+        extra_kwargs = {
+            "purchaseOrderID": {"read_only": True},
+        }
+
+    def validate_details(self, value):
+        if not value:
+            raise serializers.ValidationError("Debe enviar al menos un detalle.")
+        return value
+
+    def create(self, validated_data):
+        details_data = validated_data.pop("details")
+        create_at = validated_data.get("createAt") or timezone.localdate()
+        created_by = validated_data.get("createdBy")
+
+        validated_data["createAt"] = create_at
+
+        with transaction.atomic():
+            purchase_order = PurchaseOrder.objects.create(**validated_data)
+            detail_instances = []
+
+            for detail_data in details_data:
+                detail_data.setdefault("createAt", create_at)
+                if created_by is not None:
+                    detail_data.setdefault("createdBy", created_by)
+                detail_instances.append(
+                    PurchaseOrderDetail(
+                        purchaseOrderID=purchase_order,
+                        **detail_data,
+                    )
+                )
+
+            PurchaseOrderDetail.objects.bulk_create(detail_instances)
+
+        return PurchaseOrder.objects.prefetch_related("details").get(
+            pk=purchase_order.pk
+        )

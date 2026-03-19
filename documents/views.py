@@ -5,8 +5,12 @@ from rest_framework import status
 from django.utils import timezone
 
 from utils.responses import standard_response
-from .models import Document, TipoDocumento
-from .serializers import DocumentSerializer, TipoDocumentoSerializer
+from .models import Document, PurchaseOrder, TipoDocumento
+from .serializers import (
+    DocumentSerializer,
+    PurchaseOrderSerializer,
+    TipoDocumentoSerializer,
+)
 
 class TipoDocumentoView(APIView):
     def get(self, request):
@@ -104,6 +108,49 @@ class DocumentDeleteView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class PurchaseOrderCreateView(APIView):
+    def post(self, request):
+        serializer = PurchaseOrderSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return standard_response(
+                success=True,
+                message="Orden de compra creada correctamente",
+                data=serializer.data,
+                status_code=status.HTTP_200_OK,
+            )
+
+        return standard_response(
+            success=False,
+            message="Error al crear la orden de compra",
+            data=serializer.errors,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class PurchaseOrderDetailView(APIView):
+    def get(self, request, pk):
+        try:
+            purchase_order = PurchaseOrder.objects.prefetch_related("details").get(
+                purchaseOrderID=pk
+            )
+        except PurchaseOrder.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Orden de compra no encontrada",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = PurchaseOrderSerializer(purchase_order)
+        return standard_response(
+            success=True,
+            message="Orden de compra obtenida correctamente",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
 
 class DocumentDetailView(APIView):
     def get(self, request, pk):
