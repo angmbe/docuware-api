@@ -103,3 +103,33 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(response.data["success"])
         self.assertEqual(response.data["message"], "Orden de compra no encontrada")
+
+    def test_get_purchase_orders_returns_all_orders(self):
+        first_order = PurchaseOrder.objects.create(orderNo="OC-0001", createdBy=1)
+        second_order = PurchaseOrder.objects.create(orderNo="OC-0002", createdBy=1)
+
+        PurchaseOrderDetail.objects.create(
+            purchaseOrderID=first_order,
+            descriptionItem="Item A",
+            quantity=1,
+            unitPrice="10.00",
+            total="10.00",
+            createdBy=1,
+        )
+        PurchaseOrderDetail.objects.create(
+            purchaseOrderID=second_order,
+            descriptionItem="Item B",
+            quantity=2,
+            unitPrice="20.00",
+            total="40.00",
+            createdBy=1,
+        )
+
+        response = self.client.get(reverse("purchase-order-create"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["message"], "Ordenes de compra obtenidas correctamente")
+        self.assertEqual(len(response.data["data"]), 2)
+        self.assertEqual(response.data["data"][0]["purchaseOrderID"], second_order.purchaseOrderID)
+        self.assertEqual(len(response.data["data"][0]["details"]), 1)

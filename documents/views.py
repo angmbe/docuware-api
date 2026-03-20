@@ -111,6 +111,18 @@ class DocumentDeleteView(APIView):
 
 
 class PurchaseOrderCreateView(APIView):
+    def get(self, request):
+        purchase_orders = PurchaseOrder.objects.prefetch_related("details").order_by(
+            "-purchaseOrderID"
+        )
+        serializer = PurchaseOrderSerializer(purchase_orders, many=True)
+        return standard_response(
+            success=True,
+            message="Ordenes de compra obtenidas correctamente",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
+
     def post(self, request):
         serializer = PurchaseOrderSerializer(data=request.data)
         if serializer.is_valid():

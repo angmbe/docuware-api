@@ -59,7 +59,6 @@ class Document(models.Model):
     class Meta:
         db_table = "documents"
 
-
 class PurchaseOrder(models.Model):
     purchaseOrderID = models.AutoField(primary_key=True, db_column="purchaseorderid")
     orderNo = models.CharField(max_length=20, null=True, blank=True, db_column="orderno")
