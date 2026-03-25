@@ -5,6 +5,7 @@ from .views import (
     DocumentListCreateView,
     PurchaseOrderCreateView,
     PurchaseOrderDetailView,
+    PurchaseOrderStatusUpdateView,
     TipoDocumentoView,
 )
 
@@ -15,4 +16,5 @@ urlpatterns = [
     path("document-delete/", DocumentDeleteView.as_view(), name="document-delete"),
     path("purchase-orders/", PurchaseOrderCreateView.as_view(), name="purchase-order-create"),
     path("purchase-orders/<int:pk>/", PurchaseOrderDetailView.as_view(), name="purchase-order-detail"),
+    path("purchase-orders/status/", PurchaseOrderStatusUpdateView.as_view(), name="purchase-order-status-update"),
 ]

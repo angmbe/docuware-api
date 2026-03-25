@@ -133,3 +133,57 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(len(response.data["data"]), 2)
         self.assertEqual(response.data["data"][0]["purchaseOrderID"], second_order.purchaseOrderID)
         self.assertEqual(len(response.data["data"][0]["details"]), 1)
+
+    def test_post_purchase_order_status_updates_order(self):
+        purchase_order = PurchaseOrder.objects.create(
+            orderNo="OC-0200",
+            purchaseState=0,
+            createdBy=10,
+        )
+
+        response = self.client.post(
+            reverse("purchase-order-status-update"),
+            {
+                "purchaseOrderID": purchase_order.purchaseOrderID,
+                "purchaseState": 1,
+                "updatedBy": 25,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["message"], "La orden ha sido actualizado con exito")
+        self.assertEqual(response.data["data"], "La orden ha sido actualizado con exito")
+
+        purchase_order.refresh_from_db()
+        self.assertEqual(purchase_order.purchaseState, 1)
+        self.assertEqual(purchase_order.updatedBy, 25)
+        self.assertIsNotNone(purchase_order.updatedAt)
+
+    def test_post_purchase_order_status_requires_fields(self):
+        response = self.client.post(
+            reverse("purchase-order-status-update"),
+            {"purchaseOrderID": 1},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(response.data["success"])
+        self.assertIn("purchaseState", response.data["data"]["required_fields"])
+        self.assertIn("updatedBy", response.data["data"]["required_fields"])
+
+    def test_post_purchase_order_status_returns_404_when_not_found(self):
+        response = self.client.post(
+            reverse("purchase-order-status-update"),
+            {
+                "purchaseOrderID": 9999,
+                "purchaseState": 2,
+                "updatedBy": 25,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(response.data["message"], "Orden de compra no encontrada")

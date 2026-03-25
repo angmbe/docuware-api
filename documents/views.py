@@ -164,6 +164,53 @@ class PurchaseOrderDetailView(APIView):
             status_code=status.HTTP_200_OK,
         )
 
+
+class PurchaseOrderStatusUpdateView(APIView):
+    def post(self, request):
+        purchase_order_id = request.data.get("purchaseOrderID")
+        purchase_state = request.data.get("purchaseState")
+        updated_by = request.data.get("updatedBy")
+
+        missing_fields = []
+        if not purchase_order_id:
+            missing_fields.append("purchaseOrderID")
+        if purchase_state is None:
+            missing_fields.append("purchaseState")
+        if updated_by is None:
+            missing_fields.append("updatedBy")
+
+        if missing_fields:
+            return standard_response(
+                success=False,
+                message="Faltan campos obligatorios",
+                data={"required_fields": missing_fields},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            purchase_order = PurchaseOrder.objects.get(purchaseOrderID=purchase_order_id)
+        except PurchaseOrder.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Orden de compra no encontrada",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        purchase_order.purchaseState = purchase_state
+        purchase_order.updatedBy = updated_by
+        purchase_order.updatedAt = timezone.localdate()
+        purchase_order.save(update_fields=["purchaseState", "updatedBy", "updatedAt"])
+
+        success_message = "La orden ha sido actualizado con exito"
+
+        return standard_response(
+            success=True,
+            message=success_message,
+            data=success_message,
+            status_code=status.HTTP_200_OK,
+        )
+
 class DocumentDetailView(APIView):
     def get(self, request, pk):
         """Obtener un documento por ID"""
