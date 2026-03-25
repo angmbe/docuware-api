@@ -14,4 +14,5 @@ MIGRATION_MODULES = {
     "centro_costo": None,
     "programacion": None,
     "users": None,
+    "catalogos": None,
 }

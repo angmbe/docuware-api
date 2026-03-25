@@ -31,8 +31,8 @@ urlpatterns = [
     path('api/', include('documents_items.urls')),
     path('api/', include('centro_costo.urls')),
     path('api/', include('programacion.urls')),
+    path('api/', include('catalogos.urls')),
     # path('api/', include('customerpayment.urls')),
     # path('api/', include('customerlegal.urls')),
     # path('api/', include('customerauthorization.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
