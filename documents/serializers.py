@@ -2,8 +2,10 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from catalogos.serializers import CatalogoSerializer
 from centro_costo.models import CentroCosto
 from centro_costo.serializers import CentroCostoSerializer
+from proveedores.models import Proveedor
 from .models import Document, PurchaseOrder, PurchaseOrderDetail, TipoDocumento
 
 class TipoDocumentoSerializer(serializers.ModelSerializer):
@@ -11,6 +13,12 @@ class TipoDocumentoSerializer(serializers.ModelSerializer):
         model = TipoDocumento
         #fields = "__all__"
         fields = ["tipoid", "tipo"]  # solo los campos que quieres exponer
+
+
+class PurchaseOrderProveedorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proveedor
+        fields = ["supplierid", "supplierno", "suppliername"]
         
 class DocumentSerializer(serializers.ModelSerializer):
     documenttype = TipoDocumentoSerializer(read_only=True)
@@ -114,3 +122,37 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         return PurchaseOrder.objects.prefetch_related("details").get(
             pk=purchase_order.pk
         )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["supplierID"] = (
+            PurchaseOrderProveedorSerializer(instance.supplierID).data
+            if instance.supplierID
+            else None
+        )
+        data["documentAssociatedType"] = (
+            TipoDocumentoSerializer(instance.documentAssociatedType).data
+            if instance.documentAssociatedType
+            else None
+        )
+        data["paymentCondition"] = (
+            CatalogoSerializer(instance.paymentCondition).data
+            if instance.paymentCondition
+            else None
+        )
+        data["currency"] = (
+            CatalogoSerializer(instance.currency).data
+            if instance.currency
+            else None
+        )
+        data["store"] = (
+            CatalogoSerializer(instance.store).data
+            if instance.store
+            else None
+        )
+        data["purchaseState"] = (
+            CatalogoSerializer(instance.purchaseState).data
+            if instance.purchaseState
+            else None
+        )
+        return data

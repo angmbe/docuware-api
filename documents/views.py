@@ -112,8 +112,17 @@ class DocumentDeleteView(APIView):
 
 class PurchaseOrderCreateView(APIView):
     def get(self, request):
-        purchase_orders = PurchaseOrder.objects.prefetch_related("details").order_by(
-            "-purchaseOrderID"
+        purchase_orders = (
+            PurchaseOrder.objects.select_related(
+                "supplierID",
+                "documentAssociatedType",
+                "paymentCondition",
+                "currency",
+                "store",
+                "purchaseState",
+            )
+            .prefetch_related("details")
+            .order_by("-purchaseOrderID")
         )
         serializer = PurchaseOrderSerializer(purchase_orders, many=True)
         return standard_response(
@@ -145,8 +154,17 @@ class PurchaseOrderCreateView(APIView):
 class PurchaseOrderDetailView(APIView):
     def get(self, request, pk):
         try:
-            purchase_order = PurchaseOrder.objects.prefetch_related("details").get(
-                purchaseOrderID=pk
+            purchase_order = (
+                PurchaseOrder.objects.select_related(
+                    "supplierID",
+                    "documentAssociatedType",
+                    "paymentCondition",
+                    "currency",
+                    "store",
+                    "purchaseState",
+                )
+                .prefetch_related("details")
+                .get(purchaseOrderID=pk)
             )
         except PurchaseOrder.DoesNotExist:
             return standard_response(
@@ -197,7 +215,7 @@ class PurchaseOrderStatusUpdateView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        purchase_order.purchaseState = purchase_state
+        purchase_order.purchaseState_id = purchase_state
         purchase_order.updatedBy = updated_by
         purchase_order.updatedAt = timezone.localdate()
         purchase_order.save(update_fields=["purchaseState", "updatedBy", "updatedAt"])

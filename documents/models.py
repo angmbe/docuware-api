@@ -1,5 +1,8 @@
 from django.db import models
 
+from catalogos.models import Catalogo
+from proveedores.models import Proveedor
+
 class TipoDocumento(models.Model):
     tipoid = models.AutoField(primary_key=True)
     tipo = models.CharField(max_length=100)
@@ -62,11 +65,23 @@ class Document(models.Model):
 class PurchaseOrder(models.Model):
     purchaseOrderID = models.AutoField(primary_key=True, db_column="purchaseorderid")
     orderNo = models.CharField(max_length=20, null=True, blank=True, db_column="orderno")
-    supplierID = models.IntegerField(null=True, blank=True, db_column="supplierid")
-    documentAssociatedType = models.IntegerField(
+    supplierID = models.ForeignKey(
+        Proveedor,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        db_column="supplierid",
+        related_name="purchase_orders",
         null=True,
         blank=True,
+    )
+    documentAssociatedType = models.ForeignKey(
+        TipoDocumento,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         db_column="documentassociatedtype",
+        related_name="purchase_orders",
+        null=True,
+        blank=True,
     )
     documentAssociatedNo = models.CharField(
         max_length=50,
@@ -74,15 +89,43 @@ class PurchaseOrder(models.Model):
         blank=True,
         db_column="documentassociatedno",
     )
-    paymentCondition = models.IntegerField(
+    paymentCondition = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        db_column="paymentcondition",
+        related_name="purchase_orders_payment_condition",
         null=True,
         blank=True,
-        db_column="paymentcondition",
     )
-    currency = models.IntegerField(null=True, blank=True, db_column="currency")
+    currency = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        db_column="currency",
+        related_name="purchase_orders_currency",
+        null=True,
+        blank=True,
+    )
     guideNo = models.CharField(max_length=20, null=True, blank=True, db_column="guideno")
-    store = models.IntegerField(null=True, blank=True, db_column="store")
-    purchaseState = models.IntegerField(null=True, blank=True, db_column="purchasestate")
+    store = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        db_column="store",
+        related_name="purchase_orders_store",
+        null=True,
+        blank=True,
+    )
+    purchaseState = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
+        db_column="purchasestate",
+        related_name="purchase_orders_state",
+        null=True,
+        blank=True,
+    )
     createdBy = models.IntegerField(null=True, blank=True, db_column="createdby")
     createAt = models.DateField(null=True, blank=True, db_column="createat")
     updatedBy = models.IntegerField(null=True, blank=True, db_column="updatedby")

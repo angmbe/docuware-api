@@ -2,21 +2,61 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import PurchaseOrder, PurchaseOrderDetail
+from catalogos.models import Catalogo
+from proveedores.models import Proveedor
+
+from .models import PurchaseOrder, PurchaseOrderDetail, TipoDocumento
 
 
 class PurchaseOrderCreateViewTests(APITestCase):
+    def setUp(self):
+        self.supplier = Proveedor.objects.create(
+            supplierno="PRV-001",
+            suppliername="Proveedor Test",
+        )
+        self.document_type = TipoDocumento.objects.create(tipo="Factura")
+        self.payment_condition = Catalogo.objects.create(
+            tipo_catalogo="CONDICION_PAGO",
+            codigo="CONTADO",
+            descripcion="Contado",
+            estado=True,
+        )
+        self.currency = Catalogo.objects.create(
+            tipo_catalogo="MONEDA",
+            codigo="PEN",
+            descripcion="Sol",
+            estado=True,
+        )
+        self.store = Catalogo.objects.create(
+            tipo_catalogo="ALMACEN",
+            codigo="PRINCIPAL",
+            descripcion="Almacen principal",
+            estado=True,
+        )
+        self.purchase_state = Catalogo.objects.create(
+            tipo_catalogo="ESTADO_OC",
+            codigo="APROBADO",
+            descripcion="Aprobado",
+            estado=True,
+        )
+        self.purchase_state_rejected = Catalogo.objects.create(
+            tipo_catalogo="ESTADO_OC",
+            codigo="RECHAZADO",
+            descripcion="Rechazado",
+            estado=True,
+        )
+
     def test_create_purchase_order_with_details(self):
         payload = {
             "orderNo": "OC-0001",
-            "supplierID": 10,
-            "documentAssociatedType": 2,
+            "supplierID": self.supplier.supplierid,
+            "documentAssociatedType": self.document_type.tipoid,
             "documentAssociatedNo": "FAC-1001",
-            "paymentCondition": 1,
-            "currency": 1,
+            "paymentCondition": self.payment_condition.id,
+            "currency": self.currency.id,
             "guideNo": "GUIA-01",
-            "store": 3,
-            "purchaseState": 1,
+            "store": self.store.id,
+            "purchaseState": self.purchase_state.id,
             "createdBy": 99,
             "details": [
                 {
@@ -54,6 +94,11 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(purchase_order.orderNo, "OC-0001")
         self.assertEqual(first_detail.createdBy, 99)
         self.assertEqual(len(response.data["data"]["details"]), 2)
+        self.assertEqual(response.data["data"]["supplierID"]["supplierid"], self.supplier.supplierid)
+        self.assertEqual(
+            response.data["data"]["documentAssociatedType"]["tipoid"],
+            self.document_type.tipoid,
+        )
 
     def test_create_purchase_order_requires_details(self):
         payload = {
@@ -75,7 +120,12 @@ class PurchaseOrderCreateViewTests(APITestCase):
     def test_get_purchase_order_with_details_by_id(self):
         purchase_order = PurchaseOrder.objects.create(
             orderNo="OC-0100",
-            supplierID=5,
+            supplierID=self.supplier,
+            documentAssociatedType=self.document_type,
+            paymentCondition=self.payment_condition,
+            currency=self.currency,
+            store=self.store,
+            purchaseState=self.purchase_state,
             createdBy=10,
         )
         PurchaseOrderDetail.objects.create(
@@ -96,6 +146,15 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(response.data["data"]["purchaseOrderID"], purchase_order.purchaseOrderID)
         self.assertEqual(len(response.data["data"]["details"]), 1)
         self.assertEqual(response.data["data"]["details"][0]["descriptionItem"], "Servicio 1")
+        self.assertEqual(response.data["data"]["supplierID"]["supplierid"], self.supplier.supplierid)
+        self.assertEqual(response.data["data"]["paymentCondition"]["id"], self.payment_condition.id)
+        self.assertEqual(response.data["data"]["currency"]["id"], self.currency.id)
+        self.assertEqual(response.data["data"]["store"]["id"], self.store.id)
+        self.assertEqual(response.data["data"]["purchaseState"]["id"], self.purchase_state.id)
+        self.assertEqual(
+            response.data["data"]["documentAssociatedType"]["tipoid"],
+            self.document_type.tipoid,
+        )
 
     def test_get_purchase_order_by_id_returns_404_when_not_found(self):
         response = self.client.get(reverse("purchase-order-detail", args=[9999]))
@@ -105,8 +164,26 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(response.data["message"], "Orden de compra no encontrada")
 
     def test_get_purchase_orders_returns_all_orders(self):
-        first_order = PurchaseOrder.objects.create(orderNo="OC-0001", createdBy=1)
-        second_order = PurchaseOrder.objects.create(orderNo="OC-0002", createdBy=1)
+        first_order = PurchaseOrder.objects.create(
+            orderNo="OC-0001",
+            supplierID=self.supplier,
+            documentAssociatedType=self.document_type,
+            paymentCondition=self.payment_condition,
+            currency=self.currency,
+            store=self.store,
+            purchaseState=self.purchase_state,
+            createdBy=1,
+        )
+        second_order = PurchaseOrder.objects.create(
+            orderNo="OC-0002",
+            supplierID=self.supplier,
+            documentAssociatedType=self.document_type,
+            paymentCondition=self.payment_condition,
+            currency=self.currency,
+            store=self.store,
+            purchaseState=self.purchase_state,
+            createdBy=1,
+        )
 
         PurchaseOrderDetail.objects.create(
             purchaseOrderID=first_order,
@@ -133,11 +210,16 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(len(response.data["data"]), 2)
         self.assertEqual(response.data["data"][0]["purchaseOrderID"], second_order.purchaseOrderID)
         self.assertEqual(len(response.data["data"][0]["details"]), 1)
+        self.assertEqual(response.data["data"][0]["supplierID"]["supplierid"], self.supplier.supplierid)
+        self.assertEqual(
+            response.data["data"][0]["documentAssociatedType"]["tipoid"],
+            self.document_type.tipoid,
+        )
 
     def test_post_purchase_order_status_updates_order(self):
         purchase_order = PurchaseOrder.objects.create(
             orderNo="OC-0200",
-            purchaseState=0,
+            purchaseState=self.purchase_state,
             createdBy=10,
         )
 
@@ -145,7 +227,7 @@ class PurchaseOrderCreateViewTests(APITestCase):
             reverse("purchase-order-status-update"),
             {
                 "purchaseOrderID": purchase_order.purchaseOrderID,
-                "purchaseState": 1,
+                "purchaseState": self.purchase_state_rejected.id,
                 "updatedBy": 25,
             },
             format="json",
@@ -157,7 +239,7 @@ class PurchaseOrderCreateViewTests(APITestCase):
         self.assertEqual(response.data["data"], "La orden ha sido actualizado con exito")
 
         purchase_order.refresh_from_db()
-        self.assertEqual(purchase_order.purchaseState, 1)
+        self.assertEqual(purchase_order.purchaseState_id, self.purchase_state_rejected.id)
         self.assertEqual(purchase_order.updatedBy, 25)
         self.assertIsNotNone(purchase_order.updatedAt)
 
@@ -178,7 +260,7 @@ class PurchaseOrderCreateViewTests(APITestCase):
             reverse("purchase-order-status-update"),
             {
                 "purchaseOrderID": 9999,
-                "purchaseState": 2,
+                "purchaseState": self.purchase_state_rejected.id,
                 "updatedBy": 25,
             },
             format="json",
