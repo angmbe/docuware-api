@@ -57,3 +57,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
         validated_data.setdefault("createdat", now)
         validated_data.setdefault("updatedat", now)
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data["updatedat"] = timezone.now()
+        return super().update(instance, validated_data)

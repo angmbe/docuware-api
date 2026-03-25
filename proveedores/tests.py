@@ -105,3 +105,39 @@ class ProveedorListCreateViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(response.data["success"])
         self.assertIn("suppliername", response.data["data"])
+
+    def test_post_proveedor_updates_existing_record_when_supplierid_is_sent(self):
+        proveedor = Proveedor.objects.create(
+            supplierno="PRV-010",
+            suppliername="Proveedor Inicial",
+            phone="111111111",
+            bank1=self.bank_bcp,
+            createdby=1,
+            updatedby=1,
+        )
+
+        payload = {
+            "supplierid": proveedor.supplierid,
+            "suppliername": "Proveedor Actualizado",
+            "phone": "222222222",
+            "bank2_id": self.bank_bbva.id,
+            "updatedby": 9,
+        }
+
+        response = self.client.post(
+            reverse("proveedores-list-create"),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["message"], "Proveedor actualizado correctamente")
+
+        proveedor.refresh_from_db()
+        self.assertEqual(proveedor.suppliername, "Proveedor Actualizado")
+        self.assertEqual(proveedor.phone, "222222222")
+        self.assertEqual(proveedor.bank1_id, self.bank_bcp.id)
+        self.assertEqual(proveedor.bank2_id, self.bank_bbva.id)
+        self.assertEqual(proveedor.updatedby, 9)
+        self.assertEqual(response.data["data"]["bank2"]["codigo"], "BBVA")
