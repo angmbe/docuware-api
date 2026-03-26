@@ -16,4 +16,5 @@ MIGRATION_MODULES = {
     "users": None,
     "catalogos": None,
     "proveedores": None,
+    "expedientes": None,
 }
