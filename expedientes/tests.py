@@ -144,7 +144,12 @@ class ExpedienteListCreateViewTests(APITestCase):
         self.assertTrue(response.data["success"])
         self.assertEqual(response.data["message"], "Expediente creado correctamente")
         self.assertEqual(response.data["data"]["facturaid"], self.document.documentid)
+        self.assertEqual(response.data["data"]["factura"]["documentid"], self.document.documentid)
         self.assertEqual(response.data["data"]["ordencompraid"], self.purchase_order.purchaseOrderID)
+        self.assertEqual(
+            response.data["data"]["ordencompra"]["purchaseOrderID"],
+            self.purchase_order.purchaseOrderID,
+        )
         self.assertEqual(len(response.data["data"]["expediente_documentos"]), 2)
 
     def test_post_expediente_with_pdf_files_creates_records_and_stores_files(self):
@@ -226,6 +231,11 @@ class ExpedienteListCreateViewTests(APITestCase):
         self.assertTrue(response.data["success"])
         self.assertEqual(len(response.data["data"]), 2)
         self.assertEqual(response.data["data"][0]["expedienteid"], create_response.data["data"]["expedienteid"] + 1)
+        self.assertEqual(response.data["data"][1]["factura"]["documentid"], self.document.documentid)
+        self.assertEqual(
+            response.data["data"][1]["ordencompra"]["purchaseOrderID"],
+            self.purchase_order.purchaseOrderID,
+        )
 
     def test_get_expedientes_filters_by_expedienteid(self):
         first_response = self.client.post(
@@ -257,6 +267,7 @@ class ExpedienteListCreateViewTests(APITestCase):
             response.data["data"][0]["expedienteid"],
             first_response.data["data"]["expedienteid"],
         )
+        self.assertEqual(response.data["data"][0]["factura"]["documentid"], self.document.documentid)
 
     def test_post_expediente_documento_upload_creates_file_and_record(self):
         expediente_response = self.client.post(

@@ -4,6 +4,8 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from documents.serializers import DocumentSerializer, PurchaseOrderSerializer
+
 from .models import Expediente, ExpedienteDocumento
 
 
@@ -68,13 +70,17 @@ class ExpedienteDocumentoSerializer(serializers.ModelSerializer):
 
 class ExpedienteSerializer(serializers.ModelSerializer):
     expediente_documentos = ExpedienteDocumentoSerializer(many=True, required=False)
+    factura = serializers.SerializerMethodField()
+    ordencompra = serializers.SerializerMethodField()
 
     class Meta:
         model = Expediente
         fields = [
             "expedienteid",
             "facturaid",
+            "factura",
             "ordencompraid",
+            "ordencompra",
             "estado",
             "createdby",
             "createat",
@@ -108,3 +114,13 @@ class ExpedienteSerializer(serializers.ModelSerializer):
         return Expediente.objects.prefetch_related("expediente_documentos").get(
             pk=expediente.pk
         )
+
+    def get_factura(self, obj):
+        if not obj.facturaid:
+            return None
+        return DocumentSerializer(obj.facturaid).data
+
+    def get_ordencompra(self, obj):
+        if not obj.ordencompraid:
+            return None
+        return PurchaseOrderSerializer(obj.ordencompraid).data
