@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+from urllib.request import Request, urlopen
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 from django.utils import timezone
@@ -31,13 +34,17 @@ def build_expediente_storage_path(current_date, expediente_folder_name):
 
 
 def store_expediente_file(uploaded_file, expediente_folder_name):
+    return store_expediente_content(uploaded_file.name, uploaded_file, expediente_folder_name)
+
+
+def store_expediente_content(file_name, file_content, expediente_folder_name):
     current_date = timezone.localtime()
     relative_dir = build_expediente_storage_path(current_date, expediente_folder_name)
     target_dir = Path(settings.MEDIA_ROOT) / relative_dir
     target_dir.mkdir(parents=True, exist_ok=True)
 
     storage = FileSystemStorage(location=target_dir)
-    stored_file_name = storage.save(uploaded_file.name, uploaded_file)
+    stored_file_name = storage.save(file_name, file_content)
     stored_relative_path = (relative_dir / stored_file_name).as_posix()
     return stored_file_name, stored_relative_path
 
@@ -58,6 +65,65 @@ def parse_expediente_documentos(raw_documentos):
         raise ValueError("El campo expediente_documentos debe ser una lista.")
 
     return documentos
+
+
+def build_downloadable_document_url(documenturl):
+    parsed_url = urlparse(documenturl)
+
+    if "drive.google.com" not in parsed_url.netloc:
+        return documenturl
+
+    if "/file/d/" in parsed_url.path:
+        file_id = parsed_url.path.split("/file/d/")[1].split("/")[0]
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    query_params = parse_qs(parsed_url.query)
+    file_id = query_params.get("id", [None])[0]
+    if file_id:
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    return documenturl
+
+
+def download_factura_document(document):
+    if not document or not document.documenturl:
+        return None
+
+    download_url = build_downloadable_document_url(document.documenturl)
+    request = Request(download_url, headers={"User-Agent": "Mozilla/5.0"})
+
+    with urlopen(request, timeout=30) as response:
+        file_bytes = response.read()
+        if not file_bytes:
+            raise ValueError("No se pudo descargar el archivo de la factura.")
+
+        file_name = response.headers.get_filename()
+        if not file_name:
+            file_name = f"factura_{document.documentid}.pdf"
+        if not file_name.lower().endswith(".pdf"):
+            file_name = f"{Path(file_name).stem}.pdf"
+
+    return file_name, ContentFile(file_bytes, name=file_name)
+
+
+def attach_factura_document_if_needed(expediente):
+    if not expediente.facturaid or not expediente.facturaid.documenturl:
+        return
+
+    file_name, file_content = download_factura_document(expediente.facturaid)
+    stored_file_name, stored_relative_path = store_expediente_content(
+        file_name,
+        file_content,
+        str(expediente.expedienteid),
+    )
+
+    ExpedienteDocumento.objects.create(
+        expedienteid=expediente,
+        tipodocumentoid=expediente.facturaid.documenttype_id,
+        filename=stored_file_name,
+        filepath=stored_relative_path,
+        createdby=expediente.createdby,
+    )
 
 
 class ExpedienteUploadView(APIView):
@@ -166,11 +232,26 @@ class ExpedienteListCreateView(APIView):
 
         serializer = ExpedienteSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            try:
+                with transaction.atomic():
+                    expediente = serializer.save()
+                    attach_factura_document_if_needed(expediente)
+            except Exception as exc:
+                return standard_response(
+                    success=False,
+                    message="Error al crear el expediente",
+                    data={"detail": [str(exc)]},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            expediente = Expediente.objects.select_related(
+                "facturaid",
+                "ordencompraid",
+            ).prefetch_related("expediente_documentos").get(pk=expediente.pk)
             return standard_response(
                 success=True,
                 message="Expediente creado correctamente",
-                data=serializer.data,
+                data=ExpedienteSerializer(expediente).data,
                 status_code=status.HTTP_201_CREATED,
             )
 
@@ -217,6 +298,7 @@ class ExpedienteListCreateView(APIView):
         try:
             with transaction.atomic():
                 expediente = serializer.save()
+                attach_factura_document_if_needed(expediente)
 
                 for documento in documentos_data:
                     file_field = documento.get("file_field")
@@ -275,4 +357,27 @@ class ExpedienteListCreateView(APIView):
             message="Expediente creado correctamente",
             data=ExpedienteSerializer(expediente).data,
             status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ExpedienteDetailView(APIView):
+    def get(self, request, expedienteid):
+        try:
+            expediente = Expediente.objects.select_related(
+                "facturaid",
+                "ordencompraid",
+            ).prefetch_related("expediente_documentos").get(expedienteid=expedienteid)
+        except Expediente.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Expediente no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        return standard_response(
+            success=True,
+            message="Expediente obtenido correctamente",
+            data=ExpedienteSerializer(expediente).data,
+            status_code=status.HTTP_200_OK,
         )

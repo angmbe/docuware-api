@@ -2,6 +2,7 @@ import shutil
 import tempfile
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from django.urls import reverse
@@ -9,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from documents.models import Document, PurchaseOrder
+from documents.models import Document, PurchaseOrder, TipoDocumento
 
 from .models import ExpedienteDocumento
 
@@ -97,8 +98,10 @@ class ExpedienteListCreateViewTests(APITestCase):
         self.addCleanup(self.override.disable)
         self.addCleanup(lambda: shutil.rmtree(self.temp_media_root, ignore_errors=True))
 
+        self.tipo_documento = TipoDocumento.objects.create(tipo="Factura")
         self.document = Document.objects.create(
             customer="Cliente 1",
+            documenttype=self.tipo_documento,
             documentdate="2026-03-26",
             amount="100.00",
             taxamount="18.00",
@@ -199,6 +202,43 @@ class ExpedienteListCreateViewTests(APITestCase):
         self.assertTrue(first_file_path.exists())
         self.assertTrue(second_file_path.exists())
 
+    @patch("expedientes.views.urlopen")
+    def test_post_expediente_auto_attaches_factura_from_documenturl(self, mock_urlopen):
+        self.document.documenturl = "https://drive.google.com/file/d/test-file-id/view?usp=sharing"
+        self.document.save(update_fields=["documenturl"])
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"%PDF-1.4 factura descargada"
+        mock_response.headers.get_filename.return_value = "factura_drive.pdf"
+        mock_urlopen.return_value.__enter__.return_value = mock_response
+
+        response = self.client.post(
+            reverse("expedientes-list-create"),
+            {
+                "facturaid": self.document.documentid,
+                "createdby": 7,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(len(response.data["data"]["expediente_documentos"]), 1)
+        self.assertEqual(
+            response.data["data"]["expediente_documentos"][0]["tipodocumentoid"],
+            self.tipo_documento.tipoid,
+        )
+        self.assertEqual(
+            response.data["data"]["expediente_documentos"][0]["filename"],
+            "factura_drive.pdf",
+        )
+
+        saved_file_path = (
+            Path(self.temp_media_root)
+            / response.data["data"]["expediente_documentos"][0]["filepath"]
+        )
+        self.assertTrue(saved_file_path.exists())
+
     def test_get_expedientes_returns_all_records(self):
         create_response = self.client.post(
             reverse("expedientes-list-create"),
@@ -268,6 +308,41 @@ class ExpedienteListCreateViewTests(APITestCase):
             first_response.data["data"]["expedienteid"],
         )
         self.assertEqual(response.data["data"][0]["factura"]["documentid"], self.document.documentid)
+
+    def test_get_expediente_detail_returns_single_record(self):
+        create_response = self.client.post(
+            reverse("expedientes-list-create"),
+            {
+                "facturaid": self.document.documentid,
+                "ordencompraid": self.purchase_order.purchaseOrderID,
+                "createdby": 1,
+            },
+            format="json",
+        )
+
+        response = self.client.get(
+            reverse("expedientes-detail", args=[create_response.data["data"]["expedienteid"]])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["message"], "Expediente obtenido correctamente")
+        self.assertEqual(
+            response.data["data"]["expedienteid"],
+            create_response.data["data"]["expedienteid"],
+        )
+        self.assertEqual(response.data["data"]["factura"]["documentid"], self.document.documentid)
+        self.assertEqual(
+            response.data["data"]["ordencompra"]["purchaseOrderID"],
+            self.purchase_order.purchaseOrderID,
+        )
+
+    def test_get_expediente_detail_returns_404_when_not_found(self):
+        response = self.client.get(reverse("expedientes-detail", args=[9999]))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(response.data["message"], "Expediente no encontrado")
 
     def test_post_expediente_documento_upload_creates_file_and_record(self):
         expediente_response = self.client.post(
