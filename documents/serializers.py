@@ -80,6 +80,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             "guideNo",
             "store",
             "purchaseState",
+            "tipoorden",
+            "signature",
             "createdBy",
             "createAt",
             "updatedBy",
