@@ -105,6 +105,27 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         validated_data["createAt"] = create_at
 
         with transaction.atomic():
+            tipoorden = validated_data.get("tipoorden")
+            if tipoorden in ["S", "C"]:
+                prefix = "OS" if tipoorden == "S" else "OC"
+                current_year = str(create_at.year)
+                prefix_year = f"{prefix}-{current_year}-"
+                
+                last_po = PurchaseOrder.objects.filter(
+                    orderNo__startswith=prefix_year
+                ).order_by("-orderNo").first()
+
+                if last_po and last_po.orderNo:
+                    try:
+                        last_correlative = int(last_po.orderNo.split("-")[-1])
+                        new_correlative = last_correlative + 1
+                    except ValueError:
+                        new_correlative = 1
+                else:
+                    new_correlative = 1
+                
+                validated_data["orderNo"] = f"{prefix_year}{new_correlative:05d}"
+
             purchase_order = PurchaseOrder.objects.create(**validated_data)
             detail_instances = []
 
