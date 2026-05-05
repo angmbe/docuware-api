@@ -3,9 +3,8 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
-from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.files.storage import FileSystemStorage
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
@@ -40,13 +39,17 @@ def store_expediente_file(uploaded_file, expediente_folder_name):
 def store_expediente_content(file_name, file_content, expediente_folder_name):
     current_date = timezone.localtime()
     relative_dir = build_expediente_storage_path(current_date, expediente_folder_name)
-    target_dir = Path(settings.MEDIA_ROOT) / relative_dir
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    storage = FileSystemStorage(location=target_dir)
-    stored_file_name = storage.save(file_name, file_content)
-    stored_relative_path = (relative_dir / stored_file_name).as_posix()
+    target_path = (relative_dir / file_name).as_posix()
+    stored_relative_path = default_storage.save(target_path, file_content)
+    stored_file_name = Path(stored_relative_path).name
     return stored_file_name, stored_relative_path
+
+
+def build_file_url(request, stored_relative_path):
+    url = default_storage.url(stored_relative_path)
+    if url.startswith("/"):
+        return request.build_absolute_uri(url)
+    return url
 
 
 def parse_expediente_documentos(raw_documentos):
@@ -153,6 +156,7 @@ class ExpedienteUploadView(APIView):
                 "expedienteid": expedienteid,
                 "file_name": stored_file_name,
                 "relative_path": stored_relative_path,
+                "file_url": build_file_url(request, stored_relative_path),
             },
             status_code=status.HTTP_201_CREATED,
         )
@@ -196,7 +200,10 @@ class ExpedienteDocumentoUploadView(APIView):
             createdby=serializer.validated_data.get("createdby"),
         )
 
-        response_serializer = ExpedienteDocumentoSerializer(expediente_documento)
+        response_serializer = ExpedienteDocumentoSerializer(
+            expediente_documento,
+            context={"request": request},
+        )
         return standard_response(
             success=True,
             message="Documento del expediente cargado correctamente",
@@ -218,7 +225,11 @@ class ExpedienteListCreateView(APIView):
         if expedienteid:
             expedientes = expedientes.filter(expedienteid=expedienteid)
 
-        serializer = ExpedienteSerializer(expedientes.order_by("-expedienteid"), many=True)
+        serializer = ExpedienteSerializer(
+            expedientes.order_by("-expedienteid"),
+            many=True,
+            context={"request": request},
+        )
         return standard_response(
             success=True,
             message="Expedientes obtenidos correctamente",
@@ -251,7 +262,7 @@ class ExpedienteListCreateView(APIView):
             return standard_response(
                 success=True,
                 message="Expediente creado correctamente",
-                data=ExpedienteSerializer(expediente).data,
+                data=ExpedienteSerializer(expediente, context={"request": request}).data,
                 status_code=status.HTTP_201_CREATED,
             )
 
@@ -355,7 +366,7 @@ class ExpedienteListCreateView(APIView):
         return standard_response(
             success=True,
             message="Expediente creado correctamente",
-            data=ExpedienteSerializer(expediente).data,
+            data=ExpedienteSerializer(expediente, context={"request": request}).data,
             status_code=status.HTTP_201_CREATED,
         )
 
@@ -378,6 +389,6 @@ class ExpedienteDetailView(APIView):
         return standard_response(
             success=True,
             message="Expediente obtenido correctamente",
-            data=ExpedienteSerializer(expediente).data,
+            data=ExpedienteSerializer(expediente, context={"request": request}).data,
             status_code=status.HTTP_200_OK,
         )

@@ -5,7 +5,9 @@ Django==5.2.6
 django-cors-headers==4.8.0
 django-extensions==4.1
 django-mssql-backend==2.8.1
+django-storages==1.14.6
 djangorestframework==3.16.1
+boto3==1.40.61
 gunicorn==23.0.0
 mssql-django==1.6
 packaging==25.0

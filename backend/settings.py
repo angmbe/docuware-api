@@ -154,6 +154,35 @@ CUSTOMER_PAYMENT_FILES_DIR = os.path.join(BASE_DIR, 'payment_files')
 CUSTOMER_AUTORIZACIONES_DIR = os.path.join(MEDIA_ROOT, 'customer_autorizaciones')
 EXPEDIENTES_FILES_DIR = os.path.join(MEDIA_ROOT, 'expedientes')
 
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
+
+USE_R2_STORAGE = os.getenv("USE_R2_STORAGE", "").lower() in {"1", "true", "yes"} or all(
+    [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT_URL]
+)
+
+if USE_R2_STORAGE:
+    AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = R2_SECRET_ACCESS_KEY
+    AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
+    AWS_S3_ENDPOINT_URL = R2_ENDPOINT_URL
+    AWS_S3_REGION_NAME = os.getenv("R2_REGION_NAME", "auto")
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
+    AWS_S3_FILE_OVERWRITE = False
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 

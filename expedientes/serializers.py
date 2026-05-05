@@ -1,5 +1,6 @@
 import re
 
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -48,6 +49,8 @@ class ExpedienteDocumentoUploadSerializer(serializers.Serializer):
 
 
 class ExpedienteDocumentoSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ExpedienteDocumento
         fields = [
@@ -56,6 +59,7 @@ class ExpedienteDocumentoSerializer(serializers.ModelSerializer):
             "tipodocumentoid",
             "filename",
             "filepath",
+            "file_url",
             "estado",
             "createdby",
             "createat",
@@ -66,6 +70,16 @@ class ExpedienteDocumentoSerializer(serializers.ModelSerializer):
             "expedientedocid": {"read_only": True},
             "expedienteid": {"read_only": True},
         }
+
+    def get_file_url(self, obj):
+        if not obj.filepath:
+            return None
+
+        url = default_storage.url(obj.filepath)
+        request = self.context.get("request")
+        if request and url.startswith("/"):
+            return request.build_absolute_uri(url)
+        return url
 
 
 class ExpedienteSerializer(serializers.ModelSerializer):
