@@ -7,6 +7,32 @@ from rest_framework import status
 
 from utils.responses import standard_response
 from .models import User, Profile
+from .serializers import UserSerializer
+
+
+class UserListView(APIView):
+    def get(self, request):
+        profile = request.query_params.get("profile")
+        users = User.objects.select_related("profile")
+
+        if profile and profile.strip():
+            if not profile.strip().isdigit():
+                return standard_response(
+                    success=False,
+                    message="El parámetro 'profile' debe ser numérico",
+                    data=None,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            users = users.filter(profile_id=profile.strip())
+
+        serializer = UserSerializer(users.order_by("userid"), many=True)
+        return standard_response(
+            success=True,
+            message="Usuarios obtenidos correctamente",
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+        )
 
 class RegisterUserView(APIView):
     def post(self, request):
