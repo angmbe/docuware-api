@@ -17,4 +17,5 @@ MIGRATION_MODULES = {
     "catalogos": None,
     "proveedores": None,
     "expedientes": None,
+    "apisunat": None,
 }

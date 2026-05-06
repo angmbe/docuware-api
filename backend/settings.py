@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'catalogos',
     'proveedores',
     'expedientes',
+    'apisunat',
     # 'customerlegal',
     # 'customerauthorization'
 ]
@@ -162,6 +163,8 @@ R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
 USE_R2_STORAGE = os.getenv("USE_R2_STORAGE", "").lower() in {"1", "true", "yes"} or all(
     [R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_ENDPOINT_URL]
 )
+
+APISUNAT_BEARER_TOKEN = os.getenv("APISUNAT_BEARER_TOKEN")
 
 if USE_R2_STORAGE:
     AWS_ACCESS_KEY_ID = R2_ACCESS_KEY_ID
