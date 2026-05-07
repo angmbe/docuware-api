@@ -5,6 +5,7 @@ from .views import (
     ExpedienteDocumentoUploadView,
     ExpedienteListCreateView,
     ExpedienteUploadView,
+    LockedExpedienteView,
 )
 
 
@@ -16,5 +17,6 @@ urlpatterns = [
         ExpedienteDocumentoUploadView.as_view(),
         name="expedientes-documentos-upload",
     ),
+    path("locked_expediente/", LockedExpedienteView.as_view(), name="locked-expediente"),
     path("expedientes/upload/", ExpedienteUploadView.as_view(), name="expedientes-upload"),
 ]

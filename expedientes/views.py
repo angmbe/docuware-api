@@ -176,6 +176,14 @@ class ExpedienteDocumentoUploadView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
+        if expediente.lock_exp:
+            return standard_response(
+                success=False,
+                message="El expediente se encuentra cerrado, no se puede agregar documentos.",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = ExpedienteDocumentoUploadSerializer(data=request.data)
         if not serializer.is_valid():
             return standard_response(
@@ -209,6 +217,41 @@ class ExpedienteDocumentoUploadView(APIView):
             message="Documento del expediente cargado correctamente",
             data=response_serializer.data,
             status_code=status.HTTP_201_CREATED,
+        )
+
+
+class LockedExpedienteView(APIView):
+    def post(self, request):
+        expedienteid = request.data.get("expedienteid")
+
+        if not expedienteid:
+            return standard_response(
+                success=False,
+                message="El campo expedienteid es obligatorio",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            expediente = Expediente.objects.get(expedienteid=expedienteid)
+        except Expediente.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Expediente no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        expediente.lock_exp = True
+        expediente.updatedby = request.data.get("updatedby", expediente.updatedby)
+        expediente.updatedat = timezone.now()
+        expediente.save(update_fields=["lock_exp", "updatedby", "updatedat"])
+
+        return standard_response(
+            success=True,
+            message="Expediente cerrado correctamente",
+            data=ExpedienteSerializer(expediente, context={"request": request}).data,
+            status_code=status.HTTP_200_OK,
         )
 
 
@@ -290,6 +333,7 @@ class ExpedienteListCreateView(APIView):
             "facturaid": request.data.get("facturaid"),
             "ordencompraid": request.data.get("ordencompraid"),
             "estado": request.data.get("estado"),
+            "lock_exp": request.data.get("lock_exp", False),
             "createdby": request.data.get("createdby"),
             "updatedby": request.data.get("updatedby"),
         }

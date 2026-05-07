@@ -96,6 +96,7 @@ class ExpedienteSerializer(serializers.ModelSerializer):
             "ordencompraid",
             "ordencompra",
             "estado",
+            "lock_exp",
             "createdby",
             "createat",
             "updatedby",
@@ -108,6 +109,7 @@ class ExpedienteSerializer(serializers.ModelSerializer):
         documentos_data = validated_data.pop("expediente_documentos", [])
         now = timezone.now()
         validated_data.setdefault("createat", now)
+        validated_data.setdefault("lock_exp", False)
 
         with transaction.atomic():
             expediente = Expediente.objects.create(**validated_data)
