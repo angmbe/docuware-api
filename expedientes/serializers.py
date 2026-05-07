@@ -10,6 +10,38 @@ from documents.serializers import DocumentSerializer, PurchaseOrderSerializer
 from .models import Expediente, ExpedienteDocumento
 
 
+class BitBooleanField(serializers.Field):
+    TRUE_VALUES = {"1", "true", "t", "yes", "y", "on"}
+    FALSE_VALUES = {"0", "false", "f", "no", "n", "off", ""}
+
+    def to_representation(self, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value == 1
+        if isinstance(value, bytes):
+            return value not in (b"", b"\x00", b"0")
+        if isinstance(value, str):
+            return value.strip().lower() in self.TRUE_VALUES
+        return False
+
+    def to_internal_value(self, data):
+        if isinstance(data, bool):
+            return "1" if data else "0"
+        if isinstance(data, int):
+            return "1" if data == 1 else "0"
+        if isinstance(data, bytes):
+            return "0" if data in (b"", b"\x00", b"0") else "1"
+        if isinstance(data, str):
+            value = data.strip().lower()
+            if value in self.TRUE_VALUES:
+                return "1"
+            if value in self.FALSE_VALUES:
+                return "0"
+
+        raise serializers.ValidationError("El campo lock_exp debe ser booleano.")
+
+
 def validate_pdf_uploaded_file(value):
     file_name = value.name.lower()
     content_type = getattr(value, "content_type", "")
@@ -86,6 +118,7 @@ class ExpedienteSerializer(serializers.ModelSerializer):
     expediente_documentos = ExpedienteDocumentoSerializer(many=True, required=False)
     factura = serializers.SerializerMethodField()
     ordencompra = serializers.SerializerMethodField()
+    lock_exp = BitBooleanField(required=False, default=False)
 
     class Meta:
         model = Expediente
@@ -109,7 +142,7 @@ class ExpedienteSerializer(serializers.ModelSerializer):
         documentos_data = validated_data.pop("expediente_documentos", [])
         now = timezone.now()
         validated_data.setdefault("createat", now)
-        validated_data.setdefault("lock_exp", False)
+        validated_data.setdefault("lock_exp", "0")
 
         with transaction.atomic():
             expediente = Expediente.objects.create(**validated_data)

@@ -25,7 +25,7 @@ class Expediente(models.Model):
         blank=True,
     )
     estado = models.BooleanField(default=True)
-    lock_exp = models.BooleanField(default=False)
+    lock_exp = models.CharField(max_length=1, default="0")
     createdby = models.IntegerField(null=True, blank=True)
     createat = models.DateTimeField(default=timezone.now)
     updatedby = models.IntegerField(null=True, blank=True)

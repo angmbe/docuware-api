@@ -5,7 +5,7 @@ from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -258,10 +258,18 @@ class LockedExpedienteView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        expediente.lock_exp = True
         expediente.updatedby = request.data.get("updatedby", expediente.updatedby)
         expediente.updatedat = timezone.now()
-        expediente.save(update_fields=["lock_exp", "updatedby", "updatedat"])
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE expediente
+                SET lock_exp = B'1', updatedby = %s, updatedat = %s
+                WHERE expedienteid = %s
+                """,
+                [expediente.updatedby, expediente.updatedat, expediente.expedienteid],
+            )
+        expediente.lock_exp = "1"
 
         return standard_response(
             success=True,
