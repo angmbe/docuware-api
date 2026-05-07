@@ -118,7 +118,7 @@ class ExpedienteSerializer(serializers.ModelSerializer):
     expediente_documentos = ExpedienteDocumentoSerializer(many=True, required=False)
     factura = serializers.SerializerMethodField()
     ordencompra = serializers.SerializerMethodField()
-    lock_exp = BitBooleanField(required=False, default=False)
+    lock_exp = BitBooleanField(required=False, default="0")
 
     class Meta:
         model = Expediente
