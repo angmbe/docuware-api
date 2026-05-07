@@ -70,6 +70,22 @@ def parse_expediente_documentos(raw_documentos):
     return documentos
 
 
+def is_expediente_locked(lock_exp):
+    if isinstance(lock_exp, bool):
+        return lock_exp
+
+    if isinstance(lock_exp, int):
+        return lock_exp == 1
+
+    if isinstance(lock_exp, bytes):
+        return lock_exp not in (b"", b"\x00", b"0")
+
+    if isinstance(lock_exp, str):
+        return lock_exp.strip().lower() in ("1", "true", "t", "yes", "y")
+
+    return False
+
+
 def build_downloadable_document_url(documenturl):
     parsed_url = urlparse(documenturl)
 
@@ -176,7 +192,7 @@ class ExpedienteDocumentoUploadView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        if expediente.lock_exp:
+        if is_expediente_locked(expediente.lock_exp):
             return standard_response(
                 success=False,
                 message="El expediente se encuentra cerrado, no se puede agregar documentos.",
