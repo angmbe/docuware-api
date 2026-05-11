@@ -82,6 +82,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             "purchaseState",
             "tipoorden",
             "signature",
+            "signature2",
+            "requiredby",
             "createdBy",
             "createAt",
             "updatedBy",

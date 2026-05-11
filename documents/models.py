@@ -128,6 +128,8 @@ class PurchaseOrder(models.Model):
     )
     tipoorden = models.CharField(null=True, blank=True, db_column="tipoorden")
     signature = models.IntegerField(null=True, blank=True, db_column="signature")
+    signature2 = models.IntegerField(null=True, blank=True, db_column="signature2")
+    requiredby = models.CharField(null=True, blank=True, db_column="requiredby")
     createdBy = models.IntegerField(null=True, blank=True, db_column="createdby")
     createAt = models.DateField(null=True, blank=True, db_column="createat")
     updatedBy = models.IntegerField(null=True, blank=True, db_column="updatedby")
