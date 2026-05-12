@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import GetDocumentosSunatView
+from .views import GetDocumentosSunatJobView, GetDocumentosSunatView
 
 
 urlpatterns = [
@@ -8,5 +8,10 @@ urlpatterns = [
         "apisunat/GetDocumentosSunat/",
         GetDocumentosSunatView.as_view(),
         name="get-documentos-sunat",
+    ),
+    path(
+        "apisunat/GetDocumentosSunat/jobs/<str:job_id>/",
+        GetDocumentosSunatJobView.as_view(),
+        name="get-documentos-sunat-job",
     ),
 ]

@@ -12,8 +12,8 @@ from .importers import import_documentos_sunat
 
 
 APISUNAT_RCE_URL = "https://dev.apisunat.pe/api/v1/sunat/rce"
-APISUNAT_TIMEOUT_SECONDS = 10
-APISUNAT_TOTAL_TIMEOUT_SECONDS = 20
+APISUNAT_TIMEOUT_SECONDS = 25
+APISUNAT_TOTAL_TIMEOUT_SECONDS = 28
 
 
 class ApisunatError(Exception):
@@ -119,12 +119,22 @@ def filter_items_by_date_range(items, start_date, end_date):
     return filtered_items
 
 
-def get_documentos_sunat(fecha_inicio, fecha_fin, created_by=None):
+def get_documentos_sunat(
+    fecha_inicio,
+    fecha_fin,
+    created_by=None,
+    request_timeout=None,
+    total_timeout=None,
+):
     start_date, end_date, period = validate_date_range(fecha_inicio, fecha_fin)
     started_at = time.monotonic()
-    total_timeout = get_apisunat_timeout(
+    total_timeout = total_timeout or get_apisunat_timeout(
         "APISUNAT_TOTAL_TIMEOUT_SECONDS",
         APISUNAT_TOTAL_TIMEOUT_SECONDS,
+    )
+    request_timeout = request_timeout or get_apisunat_timeout(
+        "APISUNAT_TIMEOUT_SECONDS",
+        APISUNAT_TIMEOUT_SECONDS,
     )
 
     def get_remaining_timeout():
@@ -132,10 +142,7 @@ def get_documentos_sunat(fecha_inicio, fecha_fin, created_by=None):
         if remaining <= 0:
             raise ApisunatError("La consulta a Apisunat excedio el tiempo maximo permitido.")
 
-        return min(
-            get_apisunat_timeout("APISUNAT_TIMEOUT_SECONDS", APISUNAT_TIMEOUT_SECONDS),
-            remaining,
-        )
+        return min(request_timeout, remaining)
 
     first_response = fetch_rce_page(period=period, page=1, timeout=get_remaining_timeout())
     if not first_response.get("success"):
