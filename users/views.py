@@ -101,3 +101,58 @@ class LoginUserView(APIView):
                 data=None,
                 status_code=status.HTTP_400_BAD_REQUEST
             )
+
+
+class UpdatePasswordView(APIView):
+    def post(self, request):
+        user_identifier = (
+            request.data.get("userid")
+            or request.data.get("user_id")
+            or request.data.get("username")
+        )
+        new_password = request.data.get("new_password") or request.data.get("password")
+        updated_by = request.data.get("updated_by")
+
+        if not user_identifier:
+            return standard_response(
+                success=False,
+                message="Debe enviar userid o username",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not new_password:
+            return standard_response(
+                success=False,
+                message="Debe enviar la nueva contraseña",
+                data=None,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        filters = {"userid": user_identifier} if str(user_identifier).isdigit() else {"username": user_identifier}
+
+        try:
+            user = User.objects.get(**filters)
+        except User.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Usuario no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        hashed = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
+        user.password_hash = hashed.decode("utf-8")
+        user.updated_at = timezone.now()
+
+        if updated_by is not None:
+            user.updated_by = updated_by
+
+        user.save(update_fields=["password_hash", "updated_at", "updated_by"])
+
+        return standard_response(
+            success=True,
+            message="Contraseña actualizada correctamente",
+            data=None,
+            status_code=status.HTTP_200_OK,
+        )
