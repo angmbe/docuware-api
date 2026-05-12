@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import date
 from socket import timeout as SocketTimeout
 from urllib.error import HTTPError, URLError
@@ -11,7 +12,8 @@ from .importers import import_documentos_sunat
 
 
 APISUNAT_RCE_URL = "https://dev.apisunat.pe/api/v1/sunat/rce"
-APISUNAT_TIMEOUT_SECONDS = 30
+APISUNAT_TIMEOUT_SECONDS = 10
+APISUNAT_TOTAL_TIMEOUT_SECONDS = 20
 
 
 class ApisunatError(Exception):
@@ -60,14 +62,27 @@ def build_rce_headers():
     }
 
 
-def fetch_rce_page(period, page):
+def get_apisunat_timeout(default_name, default_value):
+    value = getattr(settings, default_name, default_value)
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default_value
+
+
+def fetch_rce_page(period, page, timeout=None):
     request = Request(
         build_rce_url(period, page),
         headers=build_rce_headers(),
     )
+    request_timeout = timeout or get_apisunat_timeout(
+        "APISUNAT_TIMEOUT_SECONDS",
+        APISUNAT_TIMEOUT_SECONDS,
+    )
 
     try:
-        with urlopen(request, timeout=APISUNAT_TIMEOUT_SECONDS) as response:
+        with urlopen(request, timeout=request_timeout) as response:
             response_body = response.read().decode("utf-8")
     except HTTPError as exc:
         raise ApisunatError(f"Apisunat respondio con estado HTTP {exc.code}.") from exc
@@ -106,8 +121,23 @@ def filter_items_by_date_range(items, start_date, end_date):
 
 def get_documentos_sunat(fecha_inicio, fecha_fin, created_by=None):
     start_date, end_date, period = validate_date_range(fecha_inicio, fecha_fin)
+    started_at = time.monotonic()
+    total_timeout = get_apisunat_timeout(
+        "APISUNAT_TOTAL_TIMEOUT_SECONDS",
+        APISUNAT_TOTAL_TIMEOUT_SECONDS,
+    )
 
-    first_response = fetch_rce_page(period=period, page=1)
+    def get_remaining_timeout():
+        remaining = total_timeout - (time.monotonic() - started_at)
+        if remaining <= 0:
+            raise ApisunatError("La consulta a Apisunat excedio el tiempo maximo permitido.")
+
+        return min(
+            get_apisunat_timeout("APISUNAT_TIMEOUT_SECONDS", APISUNAT_TIMEOUT_SECONDS),
+            remaining,
+        )
+
+    first_response = fetch_rce_page(period=period, page=1, timeout=get_remaining_timeout())
     if not first_response.get("success"):
         raise ApisunatError(first_response.get("message") or "Apisunat retorno error.")
 
@@ -122,7 +152,11 @@ def get_documentos_sunat(fecha_inicio, fecha_fin, created_by=None):
     )
 
     for page in range(2, total_pages + 1):
-        page_response = fetch_rce_page(period=period, page=page)
+        page_response = fetch_rce_page(
+            period=period,
+            page=page,
+            timeout=get_remaining_timeout(),
+        )
         if not page_response.get("success"):
             raise ApisunatError(
                 page_response.get("message") or f"Apisunat retorno error en pagina {page}."

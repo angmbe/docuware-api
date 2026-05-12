@@ -93,4 +93,13 @@ class ApisunatServiceTests(SimpleTestCase):
         self.assertEqual(result["import_summary"]["documents_created"], 2)
         self.assertEqual([item["id"] for item in result["items"]], ["inside-first", "inside-second"])
         self.assertEqual(fetch_rce_page.call_count, 2)
+        self.assertIn("timeout", fetch_rce_page.call_args_list[0].kwargs)
         import_documentos_sunat.assert_called_once()
+
+    @override_settings(APISUNAT_TOTAL_TIMEOUT_SECONDS="0")
+    @patch("apisunat.services.fetch_rce_page")
+    def test_get_documentos_sunat_fails_before_heroku_timeout(self, fetch_rce_page):
+        with self.assertRaisesMessage(ApisunatError, "tiempo maximo permitido"):
+            get_documentos_sunat("2026-05-02", "2026-05-05")
+
+        fetch_rce_page.assert_not_called()
