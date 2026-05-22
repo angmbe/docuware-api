@@ -430,3 +430,58 @@ class ExpedienteListCreateViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(response.data["success"])
         self.assertIn("file", response.data["data"])
+
+    def test_delete_expediente_documento_removes_file_and_record(self):
+        expediente_response = self.client.post(
+            reverse("expedientes-list-create"),
+            {
+                "facturaid": self.document.documentid,
+                "createdby": 1,
+            },
+            format="json",
+        )
+        expedienteid = expediente_response.data["data"]["expedienteid"]
+        pdf_file = SimpleUploadedFile(
+            "sustento.pdf",
+            b"%PDF-1.4 expediente document",
+            content_type="application/pdf",
+        )
+        upload_response = self.client.post(
+            reverse("expedientes-documentos-upload", args=[expedienteid]),
+            {
+                "tipodocumentoid": 5,
+                "createdby": 7,
+                "file": pdf_file,
+            },
+            format="multipart",
+        )
+        expedientedocid = upload_response.data["data"]["expedientedocid"]
+        stored_file_path = (
+            Path(self.temp_media_root) / upload_response.data["data"]["filepath"]
+        )
+        self.assertTrue(stored_file_path.exists())
+
+        response = self.client.delete(
+            reverse("expedientes-documentos-detail", args=[expedientedocid])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(
+            response.data["message"],
+            "Documento del expediente eliminado correctamente",
+        )
+        self.assertFalse(stored_file_path.exists())
+        self.assertFalse(
+            ExpedienteDocumento.objects.filter(expedientedocid=expedientedocid).exists()
+        )
+
+    def test_delete_expediente_documento_returns_404_when_not_found(self):
+        response = self.client.delete(reverse("expedientes-documentos-detail", args=[9999]))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(
+            response.data["message"],
+            "Documento del expediente no encontrado",
+        )

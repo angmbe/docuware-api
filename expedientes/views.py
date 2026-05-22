@@ -52,6 +52,14 @@ def build_file_url(request, stored_relative_path):
     return url
 
 
+def delete_expediente_document_file(expediente_documento):
+    if not expediente_documento.filepath:
+        return False
+
+    default_storage.delete(expediente_documento.filepath)
+    return True
+
+
 def parse_expediente_documentos(raw_documentos):
     if raw_documentos in (None, "", []):
         return []
@@ -233,6 +241,46 @@ class ExpedienteDocumentoUploadView(APIView):
             message="Documento del expediente cargado correctamente",
             data=response_serializer.data,
             status_code=status.HTTP_201_CREATED,
+        )
+
+
+class ExpedienteDocumentoDetailView(APIView):
+    def delete(self, request, expedientedocid):
+        try:
+            expediente_documento = ExpedienteDocumento.objects.get(
+                expedientedocid=expedientedocid
+            )
+        except ExpedienteDocumento.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Documento del expediente no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        filepath = expediente_documento.filepath
+
+        try:
+            with transaction.atomic():
+                file_deleted = delete_expediente_document_file(expediente_documento)
+                expediente_documento.delete()
+        except Exception as exc:
+            return standard_response(
+                success=False,
+                message="Error al eliminar el documento del expediente",
+                data={"detail": [str(exc)]},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return standard_response(
+            success=True,
+            message="Documento del expediente eliminado correctamente",
+            data={
+                "expedientedocid": expedientedocid,
+                "filepath": filepath,
+                "file_deleted": file_deleted,
+            },
+            status_code=status.HTTP_200_OK,
         )
 
 

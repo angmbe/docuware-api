@@ -8,6 +8,16 @@ DATABASES = {
     }
 }
 
+USE_R2_STORAGE = False
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 MIGRATION_MODULES = {
     "documents": None,
     "documents_items": None,
