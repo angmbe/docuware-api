@@ -37,30 +37,114 @@ class UserListView(APIView):
 class RegisterUserView(APIView):
     def post(self, request):
         data = request.data
+        user_identifier = data.get("userid") or data.get("user_id") or data.get("userID")
+
+        if user_identifier:
+            return self._update_user(data, user_identifier)
+
+        return self._create_user(data)
+
+    def _create_user(self, data):
+        username = data.get("username") or data.get("userName")
+        fullname = data.get("fullname") or data.get("fullName")
+        profile_id = data.get("profile_id") or data.get("profileID")
         password = data.get("password")
+        missing_fields = []
+        if not username:
+            missing_fields.append("username")
+        if not fullname:
+            missing_fields.append("fullname")
+        if not profile_id:
+            missing_fields.append("profile_id")
         if not password:
-            return Response({"error": "Password is required"}, status=400)
+            missing_fields.append("password")
+
+        if missing_fields:
+            return standard_response(
+                success=False,
+                message="Faltan campos obligatorios",
+                data={"fields": missing_fields},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         try:
             user = User.objects.create(
-                username=data["username"],
+                username=username,
                 password_hash=hashed.decode('utf-8'),
-                fullname=data["fullname"],
-                profile_id=data["profile_id"],
+                fullname=fullname,
+                profile_id=profile_id,
                 #customer_id=data.get("customer_id"),
-                status=True,
-                created_by=1,
+                status=data.get("status", True),
+                created_by=data.get("created_by") or data.get("createdby") or 1,
                 created_at=timezone.now()
             )
-            #return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
             return standard_response(
-            success=True,
-            message="User created successfully",
-            status_code=status.HTTP_200_OK
-        )
+                success=True,
+                message="User created successfully",
+                data=UserSerializer(user).data,
+                status_code=status.HTTP_201_CREATED,
+            )
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+    def _update_user(self, data, user_identifier):
+        try:
+            user = User.objects.get(userid=user_identifier)
+        except User.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Usuario no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        update_fields = ["updated_at"]
+        username = data.get("username") or data.get("userName")
+        fullname = data.get("fullname") or data.get("fullName")
+        profile_id = data.get("profile_id") or data.get("profileID")
+
+        if username:
+            user.username = username
+            update_fields.append("username")
+
+        if fullname:
+            user.fullname = fullname
+            update_fields.append("fullname")
+
+        if profile_id:
+            user.profile_id = profile_id
+            update_fields.append("profile")
+
+        if "status" in data:
+            user.status = data["status"]
+            update_fields.append("status")
+
+        if data.get("password"):
+            hashed = bcrypt.hashpw(data["password"].encode("utf-8"), bcrypt.gensalt())
+            user.password_hash = hashed.decode("utf-8")
+            update_fields.append("password_hash")
+
+        updated_by = data.get("updated_by")
+        if updated_by is None:
+            updated_by = data.get("updatedby")
+        if updated_by is not None:
+            user.updated_by = updated_by
+            update_fields.append("updated_by")
+
+        user.updated_at = timezone.now()
+
+        try:
+            user.save(update_fields=update_fields)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+        return standard_response(
+            success=True,
+            message="User updated successfully",
+            data=UserSerializer(user).data,
+            status_code=status.HTTP_200_OK,
+        )
 
 
 class LoginUserView(APIView):
