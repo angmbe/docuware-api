@@ -2,9 +2,18 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 
+from catalogos.serializers import CatalogoSerializer
+from documents.serializers import TipoDocumentoSerializer
 from programacion.serializers import ConductorSerializer, VehiculoSerializer
 
-from .models import Concept, Destino, ExpenseRequest, ExpenseRequestDetail, Trip
+from .models import (
+    Concept,
+    Destino,
+    ExpenseRequest,
+    ExpenseRequestDetail,
+    ExpenseVoucher,
+    Trip,
+)
 
 
 class ConceptSerializer(serializers.ModelSerializer):
@@ -196,3 +205,65 @@ class ExpenseRequestSerializer(serializers.ModelSerializer):
             .prefetch_related("details", "details__id_concept")
             .get(pk=pk)
         )
+
+
+class ExpenseVoucherSerializer(serializers.ModelSerializer):
+    expense_voucher_id = serializers.IntegerField(required=False)
+    document_type_data = TipoDocumentoSerializer(source="document_type", read_only=True)
+    status_data = CatalogoSerializer(source="status", read_only=True)
+
+    class Meta:
+        model = ExpenseVoucher
+        fields = [
+            "expense_voucher_id",
+            "id_request",
+            "expense_detail_id",
+            "document_type",
+            "document_type_data",
+            "supplier_ruc",
+            "series_number",
+            "voucher_number",
+            "amount",
+            "photo_url",
+            "rejection_reason",
+            "status",
+            "status_data",
+            "created_at",
+            "created_by",
+            "updated_at",
+            "updated_by",
+        ]
+        read_only_fields = ("created_at", "updated_at")
+
+    def validate(self, attrs):
+        request_instance = attrs.get("id_request") or getattr(
+            self.instance,
+            "id_request",
+            None,
+        )
+        detail_instance = attrs.get("expense_detail_id") or getattr(
+            self.instance,
+            "expense_detail_id",
+            None,
+        )
+
+        if request_instance and detail_instance:
+            detail_request_id = getattr(detail_instance, "id_request_id", None)
+            if detail_request_id != request_instance.pk:
+                raise serializers.ValidationError(
+                    {
+                        "expense_detail_id": [
+                            "El detalle no pertenece a la solicitud indicada."
+                        ]
+                    }
+                )
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.setdefault("created_at", timezone.now())
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data["updated_at"] = timezone.now()
+        return super().update(instance, validated_data)

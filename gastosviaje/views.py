@@ -4,12 +4,20 @@ from rest_framework.views import APIView
 
 from utils.responses import standard_response
 
-from .models import Concept, Destino, ExpenseRequest, ExpenseRequestDetail, Trip
+from .models import (
+    Concept,
+    Destino,
+    ExpenseRequest,
+    ExpenseRequestDetail,
+    ExpenseVoucher,
+    Trip,
+)
 from .serializers import (
     ConceptSerializer,
     DestinoSerializer,
     ExpenseRequestDetailSerializer,
     ExpenseRequestSerializer,
+    ExpenseVoucherSerializer,
     TripSerializer,
 )
 
@@ -193,3 +201,34 @@ class ExpenseRequestDetailListPostView(BaseListPostView):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         return super().post(request)
+
+
+class ExpenseVoucherListPostView(BaseListPostView):
+    model = ExpenseVoucher
+    serializer_class = ExpenseVoucherSerializer
+    pk_field = "expense_voucher_id"
+    order_by = "-expense_voucher_id"
+    select_related_fields = (
+        "id_request",
+        "expense_detail_id",
+        "document_type",
+        "status",
+    )
+    list_message = "Comprobantes de gasto obtenidos correctamente"
+    detail_message = "Comprobante de gasto obtenido correctamente"
+    create_message = "Comprobante de gasto creado correctamente"
+    update_message = "Comprobante de gasto actualizado correctamente"
+    error_message = "Error al procesar el comprobante de gasto"
+    not_found_message = "Comprobante de gasto no encontrado"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        id_request = self.request.query_params.get("id_request")
+        expense_detail_id = self.request.query_params.get("expense_detail_id")
+
+        if id_request:
+            queryset = queryset.filter(id_request_id=id_request)
+        if expense_detail_id:
+            queryset = queryset.filter(expense_detail_id_id=expense_detail_id)
+
+        return queryset

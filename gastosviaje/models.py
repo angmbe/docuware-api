@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from catalogos.models import Catalogo
+from documents.models import TipoDocumento
 from programacion.models import Conductor, Vehiculo
 
 
@@ -139,3 +141,59 @@ class ExpenseRequestDetail(models.Model):
 
     def __str__(self):
         return f"Detalle {self.expense_detail_id}"
+
+
+class ExpenseVoucher(models.Model):
+    expense_voucher_id = models.AutoField(primary_key=True)
+    id_request = models.ForeignKey(
+        ExpenseRequest,
+        on_delete=models.DO_NOTHING,
+        db_column="id_request",
+        db_constraint=False,
+        related_name="vouchers",
+        null=True,
+        blank=True,
+    )
+    expense_detail_id = models.ForeignKey(
+        ExpenseRequestDetail,
+        on_delete=models.DO_NOTHING,
+        db_column="expense_detail_id",
+        db_constraint=False,
+        related_name="vouchers",
+        null=True,
+        blank=True,
+    )
+    document_type = models.ForeignKey(
+        TipoDocumento,
+        on_delete=models.DO_NOTHING,
+        db_column="document_type",
+        db_constraint=False,
+        related_name="expense_vouchers",
+        null=True,
+        blank=True,
+    )
+    supplier_ruc = models.CharField(max_length=20, null=True, blank=True)
+    series_number = models.CharField(max_length=5, null=True, blank=True)
+    voucher_number = models.CharField(max_length=20, null=True, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    photo_url = models.TextField(null=True, blank=True)
+    rejection_reason = models.TextField(null=True, blank=True)
+    status = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        db_constraint=False,
+        related_name="expense_vouchers",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    created_by = models.IntegerField(null=True, blank=True)
+    updated_at = models.DateTimeField(null=True, blank=True)
+    updated_by = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = "expensevoucher"
+
+    def __str__(self):
+        return self.voucher_number or f"Comprobante {self.expense_voucher_id}"
