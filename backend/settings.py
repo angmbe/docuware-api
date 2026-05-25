@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'proveedores',
     'expedientes',
     'apisunat',
+    'gastosviaje',
     # 'customerlegal',
     # 'customerauthorization'
 ]
