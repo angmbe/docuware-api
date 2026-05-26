@@ -123,6 +123,7 @@ class ExpenseRequestDetailSerializer(serializers.ModelSerializer):
 
 class ExpenseRequestTripSequenceSerializer(serializers.ModelSerializer):
     details = ExpenseRequestDetailSerializer(many=True, read_only=True)
+    status_data = CatalogoSerializer(source="status", read_only=True)
 
     class Meta:
         model = ExpenseRequest
@@ -133,6 +134,7 @@ class ExpenseRequestTripSequenceSerializer(serializers.ModelSerializer):
             "reason",
             "total_budget",
             "status",
+            "status_data",
             "created_at",
             "created_by",
             "updated_at",
@@ -151,6 +153,7 @@ class TripSequenceSerializer(TripSerializer):
 class ExpenseRequestSerializer(serializers.ModelSerializer):
     details = ExpenseRequestDetailSerializer(many=True, required=False)
     trip = TripSerializer(source="id_trip", read_only=True)
+    status_data = CatalogoSerializer(source="status", read_only=True)
 
     class Meta:
         model = ExpenseRequest
@@ -163,6 +166,7 @@ class ExpenseRequestSerializer(serializers.ModelSerializer):
             "reason",
             "total_budget",
             "status",
+            "status_data",
             "created_at",
             "created_by",
             "updated_at",
@@ -229,7 +233,7 @@ class ExpenseRequestSerializer(serializers.ModelSerializer):
 
     def _reload(self, pk):
         return (
-            ExpenseRequest.objects.select_related("id_trip")
+            ExpenseRequest.objects.select_related("id_trip", "status")
             .prefetch_related("details", "details__id_concept")
             .get(pk=pk)
         )

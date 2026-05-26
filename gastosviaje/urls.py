@@ -5,6 +5,7 @@ from .views import (
     DestinoListPostView,
     ExpenseRequestDetailListPostView,
     ExpenseRequestListPostView,
+    ExpenseRequestStatusUpdateView,
     ExpenseVoucherListPostView,
     TripListPostView,
 )
@@ -26,6 +27,11 @@ urlpatterns = [
         "expense-requests/<int:pk>/",
         ExpenseRequestListPostView.as_view(),
         name="expense-requests-detail",
+    ),
+    path(
+        "expense-requests/status/",
+        ExpenseRequestStatusUpdateView.as_view(),
+        name="expense-requests-status-update",
     ),
     path(
         "expense-request-details/",

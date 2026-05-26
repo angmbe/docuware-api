@@ -1,7 +1,9 @@
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
+from catalogos.models import Catalogo
 from utils.responses import standard_response
 
 from .models import (
@@ -186,6 +188,7 @@ class TripListPostView(BaseListPostView):
         if driver_id:
             queryset = queryset.filter(driver_id=driver_id).prefetch_related(
                 "expense_requests",
+                "expense_requests__status",
                 "expense_requests__details",
                 "expense_requests__details__id_concept",
             )
@@ -203,7 +206,7 @@ class ExpenseRequestListPostView(BaseListPostView):
     serializer_class = ExpenseRequestSerializer
     pk_field = "id_request"
     order_by = "-id_request"
-    select_related_fields = ("id_trip",)
+    select_related_fields = ("id_trip", "status")
     prefetch_related_fields = ("details", "details__id_concept")
     list_message = "Solicitudes de gasto obtenidas correctamente"
     detail_message = "Solicitud de gasto obtenida correctamente"
@@ -211,6 +214,61 @@ class ExpenseRequestListPostView(BaseListPostView):
     update_message = "Solicitud de gasto actualizada correctamente"
     error_message = "Error al procesar la solicitud de gasto"
     not_found_message = "Solicitud de gasto no encontrada"
+
+
+class ExpenseRequestStatusUpdateView(APIView):
+    def post(self, request):
+        expense_request_id = request.data.get("id_request")
+        request_status = request.data.get("status")
+        updated_by = request.data.get("updated_by")
+
+        missing_fields = []
+        if not expense_request_id:
+            missing_fields.append("id_request")
+        if request_status is None:
+            missing_fields.append("status")
+        if updated_by is None:
+            missing_fields.append("updated_by")
+
+        if missing_fields:
+            return standard_response(
+                success=False,
+                message="Faltan campos obligatorios",
+                data={"required_fields": missing_fields},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            expense_request = ExpenseRequest.objects.get(id_request=expense_request_id)
+        except ExpenseRequest.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Solicitud de gasto no encontrada",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not Catalogo.objects.filter(id=request_status).exists():
+            return standard_response(
+                success=False,
+                message="Estado de solicitud no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        expense_request.status_id = request_status
+        expense_request.updated_by = updated_by
+        expense_request.updated_at = timezone.now()
+        expense_request.save(update_fields=["status", "updated_by", "updated_at"])
+
+        success_message = "La solicitud de gasto ha sido actualizada con exito"
+
+        return standard_response(
+            success=True,
+            message=success_message,
+            data=success_message,
+            status_code=status.HTTP_200_OK,
+        )
 
 
 class ExpenseRequestDetailListPostView(BaseListPostView):

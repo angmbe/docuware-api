@@ -98,7 +98,14 @@ class ExpenseRequest(models.Model):
     requester_name = models.IntegerField(null=True, blank=True)
     reason = models.TextField(null=True, blank=True)
     total_budget = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
-    status = models.BooleanField(default=True)
+    status = models.ForeignKey(
+        Catalogo,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        related_name="expense_requests",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(default=timezone.now)
     created_by = models.IntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)
