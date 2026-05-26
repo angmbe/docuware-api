@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from catalogos.serializers import CatalogoSerializer
 from documents.serializers import TipoDocumentoSerializer
-from programacion.serializers import ConductorSerializer, VehiculoSerializer
+from programacion.serializers import VehiculoSerializer
+from users.serializers import UserSerializer
 
 from .models import (
     Concept,
@@ -32,7 +33,7 @@ class DestinoSerializer(serializers.ModelSerializer):
 
 class TripSerializer(serializers.ModelSerializer):
     vehicle = VehiculoSerializer(read_only=True)
-    driver = ConductorSerializer(read_only=True)
+    driver = UserSerializer(read_only=True)
     origin_data = DestinoSerializer(source="origin", read_only=True)
     destination_data = DestinoSerializer(source="destination", read_only=True)
 
@@ -118,6 +119,33 @@ class ExpenseRequestDetailSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "expense_detail_id": {"required": False},
         }
+
+
+class ExpenseRequestTripSequenceSerializer(serializers.ModelSerializer):
+    details = ExpenseRequestDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ExpenseRequest
+        fields = [
+            "id_request",
+            "request_number",
+            "requester_name",
+            "reason",
+            "total_budget",
+            "status",
+            "created_at",
+            "created_by",
+            "updated_at",
+            "updated_by",
+            "details",
+        ]
+
+
+class TripSequenceSerializer(TripSerializer):
+    expense_requests = ExpenseRequestTripSequenceSerializer(many=True, read_only=True)
+
+    class Meta(TripSerializer.Meta):
+        fields = TripSerializer.Meta.fields + ["expense_requests"]
 
 
 class ExpenseRequestSerializer(serializers.ModelSerializer):

@@ -3,7 +3,8 @@ from django.utils import timezone
 
 from catalogos.models import Catalogo
 from documents.models import TipoDocumento
-from programacion.models import Conductor, Vehiculo
+from programacion.models import Vehiculo
+from users.models import User
 
 
 class Concept(models.Model):
@@ -41,10 +42,9 @@ class Trip(models.Model):
         blank=True,
     )
     driver = models.ForeignKey(
-        Conductor,
+        User,
         on_delete=models.DO_NOTHING,
         db_column="driver_id",
-        db_constraint=False,
         related_name="trips",
         null=True,
         blank=True,

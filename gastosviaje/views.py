@@ -18,6 +18,7 @@ from .serializers import (
     ExpenseRequestDetailSerializer,
     ExpenseRequestSerializer,
     ExpenseVoucherSerializer,
+    TripSequenceSerializer,
     TripSerializer,
 )
 
@@ -44,9 +45,13 @@ class BaseListPostView(APIView):
             queryset = queryset.prefetch_related(*self.prefetch_related_fields)
         return queryset
 
+    def get_serializer_class(self):
+        return self.serializer_class
+
     def get(self, request, pk=None):
         query_pk = pk or request.query_params.get(self.pk_field)
         queryset = self.get_queryset()
+        serializer_class = self.get_serializer_class()
 
         if query_pk:
             try:
@@ -59,7 +64,7 @@ class BaseListPostView(APIView):
                     status_code=status.HTTP_404_NOT_FOUND,
                 )
 
-            serializer = self.serializer_class(instance)
+            serializer = serializer_class(instance)
             return standard_response(
                 success=True,
                 message=self.detail_message,
@@ -70,7 +75,7 @@ class BaseListPostView(APIView):
         if self.order_by:
             queryset = queryset.order_by(self.order_by)
 
-        serializer = self.serializer_class(queryset, many=True)
+        serializer = serializer_class(queryset, many=True)
         return standard_response(
             success=True,
             message=self.list_message,
@@ -162,6 +167,35 @@ class TripListPostView(BaseListPostView):
     update_message = "Viaje actualizado correctamente"
     error_message = "Error al procesar el viaje"
     not_found_message = "Viaje no encontrado"
+
+    def get(self, request, pk=None):
+        driver_id = request.query_params.get("driver_id")
+        if driver_id and not driver_id.isdigit():
+            return standard_response(
+                success=False,
+                message=self.error_message,
+                data={"driver_id": ["Debe ser un numero entero."]},
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().get(request, pk)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        driver_id = self.request.query_params.get("driver_id")
+
+        if driver_id:
+            queryset = queryset.filter(driver_id=driver_id).prefetch_related(
+                "expense_requests",
+                "expense_requests__details",
+                "expense_requests__details__id_concept",
+            )
+
+        return queryset
+
+    def get_serializer_class(self):
+        if self.request.method == "GET" and self.request.query_params.get("driver_id"):
+            return TripSequenceSerializer
+        return super().get_serializer_class()
 
 
 class ExpenseRequestListPostView(BaseListPostView):
