@@ -1,6 +1,11 @@
+from pathlib import Path
+from uuid import uuid4
+
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
 
 from catalogos.models import Catalogo
@@ -19,10 +24,36 @@ from .serializers import (
     DestinoSerializer,
     ExpenseRequestDetailSerializer,
     ExpenseRequestSerializer,
+    ExpenseVoucherPhotoUploadSerializer,
     ExpenseVoucherSerializer,
     TripSequenceSerializer,
     TripSerializer,
 )
+from .storage import get_expense_voucher_photo_storage
+
+
+def build_expense_voucher_photo_path(expense_voucher, uploaded_file):
+    current_date = timezone.localtime()
+    suffix = Path(uploaded_file.name).suffix.lower() or ".jpg"
+    file_name = f"{uuid4().hex}{suffix}"
+    return (
+        Path("expense-vouchers")
+        / current_date.strftime("%Y")
+        / current_date.strftime("%m")
+        / str(expense_voucher.expense_voucher_id)
+        / file_name
+    ).as_posix()
+
+
+def build_storage_url(request, storage, stored_path):
+    public_url = getattr(settings, "GASTOS_VIAJE_R2_PUBLIC_URL", None)
+    if public_url:
+        return f"{public_url.rstrip('/')}/{stored_path}"
+
+    url = storage.url(stored_path)
+    if request and url.startswith("/"):
+        return request.build_absolute_uri(url)
+    return url
 
 
 class BaseListPostView(APIView):
@@ -324,3 +355,61 @@ class ExpenseVoucherListPostView(BaseListPostView):
             queryset = queryset.filter(expense_detail_id_id=expense_detail_id)
 
         return queryset
+
+
+class ExpenseVoucherPhotoUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, pk):
+        try:
+            expense_voucher = ExpenseVoucher.objects.select_related(
+                "id_request",
+                "expense_detail_id",
+                "document_type",
+                "status",
+            ).get(expense_voucher_id=pk)
+        except ExpenseVoucher.DoesNotExist:
+            return standard_response(
+                success=False,
+                message="Comprobante de gasto no encontrado",
+                data=None,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = ExpenseVoucherPhotoUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return standard_response(
+                success=False,
+                message="Error al cargar la foto del comprobante",
+                data=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        uploaded_file = serializer.validated_data["photo"]
+        storage = get_expense_voucher_photo_storage()
+        target_path = build_expense_voucher_photo_path(expense_voucher, uploaded_file)
+        stored_path = storage.save(target_path, uploaded_file)
+        photo_url = build_storage_url(request, storage, stored_path)
+
+        expense_voucher.photo_url = photo_url
+        expense_voucher.updated_at = timezone.now()
+        update_fields = ["photo_url", "updated_at"]
+
+        if "updated_by" in serializer.validated_data:
+            expense_voucher.updated_by = serializer.validated_data["updated_by"]
+            update_fields.append("updated_by")
+
+        expense_voucher.save(update_fields=update_fields)
+
+        response_serializer = ExpenseVoucherSerializer(expense_voucher)
+        return standard_response(
+            success=True,
+            message="Foto del comprobante cargada correctamente",
+            data={
+                "expense_voucher_id": expense_voucher.expense_voucher_id,
+                "photo_url": expense_voucher.photo_url,
+                "file_path": stored_path,
+                "expense_voucher": response_serializer.data,
+            },
+            status_code=status.HTTP_200_OK,
+        )

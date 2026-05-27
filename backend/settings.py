@@ -159,6 +159,8 @@ EXPEDIENTES_FILES_DIR = os.path.join(MEDIA_ROOT, 'expedientes')
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
 R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
+GASTOS_VIAJE_R2_BUCKET_NAME = os.getenv("GASTOS_VIAJE_R2_BUCKET_NAME", "gastos-viaje")
+GASTOS_VIAJE_R2_PUBLIC_URL = os.getenv("GASTOS_VIAJE_R2_PUBLIC_URL")
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
 
 USE_R2_STORAGE = os.getenv("USE_R2_STORAGE", "").lower() in {"1", "true", "yes"} or all(

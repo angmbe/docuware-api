@@ -299,3 +299,36 @@ class ExpenseVoucherSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data["updated_at"] = timezone.now()
         return super().update(instance, validated_data)
+
+
+class ExpenseVoucherPhotoUploadSerializer(serializers.Serializer):
+    photo = serializers.FileField()
+    updated_by = serializers.IntegerField(required=False, allow_null=True)
+
+    allowed_content_types = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/heic",
+        "image/heif",
+        "application/pdf",
+    }
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".pdf"}
+    max_size = 10 * 1024 * 1024
+
+    def validate_photo(self, value):
+        file_name = value.name.lower()
+        content_type = getattr(value, "content_type", "")
+
+        has_allowed_extension = any(
+            file_name.endswith(extension) for extension in self.allowed_extensions
+        )
+        if content_type not in self.allowed_content_types and not has_allowed_extension:
+            raise serializers.ValidationError(
+                "Solo se permiten archivos JPG, PNG, WEBP, HEIC, HEIF o PDF."
+            )
+
+        if value.size > self.max_size:
+            raise serializers.ValidationError("La imagen no debe superar los 10 MB.")
+
+        return value
